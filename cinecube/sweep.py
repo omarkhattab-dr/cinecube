@@ -7,10 +7,11 @@ sweep.py - run a yaml sweep, 1 png + 1 json per frame, then a scorecard
 yaml looks like this (see sweeps/v1.yaml):
     cubes:
       l1448: data/l1448_13co.fits
+    beams: {l1448: 2.0}      # beam fwhm in px per cube, falls back to controls.beam_fwhm_px
     out: results/v1
-    decoder: {mode: blind, quantize: true, noise_sigma: 0.00588, seed: 0}
-    vis_thresh: 0.02
-    controls: {n_seeds: 100, beam_px: 2.0}
+    decoder: {mode: blind, recipe: jnd, jnd: 2.9}
+    vis_jnd: 2.3
+    controls: {beam_fwhm_px: 2.0}
     operators:
       - name: log
       - name: threshold
@@ -36,7 +37,7 @@ from . import __version__
 from .io import load_cube, moment0, sky_mask, cube_hash
 from .render import render, norm_disp, center_crop_like
 from .operators import apply_operator, OPERATORS
-from .decode import decode_frame
+from .decode import decode_frame, zero_color_lab
 from .metrics import score_frame, controls, bands_from_controls, classify, flip_score
 from .operators import colormap
 
@@ -71,14 +72,15 @@ def run_cube(cfg, key, path, out_root):
     os.makedirs(os.path.join(out, "frames"), exist_ok=True)
     dec = dict(cfg.get("decoder") or {})
     mode = dec.pop("mode", "blind")
-    vis = cfg.get("vis_thresh", 0.02)
+    vis = cfg.get("vis_jnd", 2.3)
     chash = cube_hash(path)
 
     equiv = float(np.max(np.abs(ref - m0)))
     print("[%s] cube %s  dv %.4f km/s  sigma %.3f K  |ref - m0|max %.2e  mask %d px" % (key, cube.shape, cube.dv, cube.sigma, equiv, int(mask.sum())))
 
     ctrl_cfg = cfg.get("controls") or {}
-    ctrl = controls(m0, ref, mask, beam_px=ctrl_cfg.get("beam_px", 2.0), n_seeds=ctrl_cfg.get("n_seeds", 100), decoder=dec)
+    beam = (cfg.get("beams") or {}).get(key, ctrl_cfg.get("beam_fwhm_px", 2.0))   # per cube beam if the yaml has one
+    ctrl = controls(m0, ref, mask, beam_fwhm_px=beam, decoder=dec, jnd_vis=vis)
     bands = bands_from_controls(ctrl)
     if cfg.get("bands"):
         # bands in the yaml override the derived ones (eg the oct 27 guess 0.95 / 0.80)
@@ -94,17 +96,18 @@ def run_cube(cfg, key, path, out_root):
     for i, (name, params) in enumerate(jobs):
         fr = apply_operator(cube, name, params)
         recovered, rec01 = decode_frame(fr, mode=mode, **dec)
-        s = score_frame(m0, ref01, recovered, mask, vis)
+        zero = zero_color_lab(fr["cmap"])      # blind viewer compares to the legend, not to the graded zero
+        s = score_frame(m0, ref01, recovered, mask, fr["rgb"], zero, vis)
         s["flip"] = flip_score(colormap(ref01, "gray"), fr["rgb"]) if fr["rgb"].shape[:2] == ref01.shape else None
         row = dict(index=i, name=name, params=params, label=fr["label"], family=fr["family"], kind=fr["kind"], expected_class=fr["cls"],
-                   cmap=fr["cmap"], decoder=dict(mode=mode, **dec), vis_thresh=vis, scores=s,
+                   cmap=fr["cmap"], decoder=dict(mode=mode, **dec), vis_jnd=vis, scores=s,
                    data_recovered=s["headline"]["data_recovered"], structure_kept=s["headline"]["structure_kept"], flux_visible=s["headline"]["flux_visible"],
                    band=classify(s["headline"]["data_recovered"], bands), cube=key, cube_hash=chash, version=__version__)
         # fair orbit comparison, same frame scored against the reference from the same camera
         if name == "orbit":
             cm = render(cube.T, cube.dv, theta_deg=params["theta"], aspect=params["aspect"])
             cm_c = center_crop_like(cm, ref) if cm.shape != ref.shape else cm
-            s2 = score_frame(cm_c, norm_disp(cm_c), recovered, cm_c > 3 * cube.sigma_m0, vis)
+            s2 = score_frame(cm_c, norm_disp(cm_c), recovered, cm_c > 3 * cube.sigma_m0, fr["rgb"], zero, vis)
             row["camera_matched"] = s2["headline"]
         tag = "%03d_%s" % (i, name) + ("" if not params else "_" + "_".join("%s%s" % (k, v) for k, v in params.items()))
         tag = tag.replace(".", "p").replace(" ", "")
@@ -114,7 +117,7 @@ def run_cube(cfg, key, path, out_root):
         print("  %-36s data %.3f  structure %.3f  flux %.2f  %s" % (fr["label"], row["data_recovered"], row["structure_kept"], row["flux_visible"], row["band"]))
 
     card = dict(cube=key, path=path, cube_hash=chash, shape=list(cube.shape), dv=cube.dv, sigma=cube.sigma, equivalence_max_abs_diff=equiv,
-                m0_max=float(m0.max()), mask_pixels=int(mask.sum()), decoder=dict(mode=mode, **dec), vis_thresh=vis, bands=bands,
+                m0_max=float(m0.max()), mask_pixels=int(mask.sum()), decoder=dict(mode=mode, **dec), vis_jnd=vis, beam_fwhm_px=beam, bands=bands,
                 controls=ctrl, rows=rows, version=__version__, seconds=round(time.time() - t0, 1))
     json.dump(card, open(os.path.join(out, "scorecard.json"), "w"), indent=1)
     print("[%s] %d frames in %.1f s -> %s" % (key, len(rows), card["seconds"], os.path.join(out, "scorecard.json")))

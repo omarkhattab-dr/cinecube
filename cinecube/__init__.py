@@ -17,4 +17,4 @@ files, same order as the pipeline:
     figures   paper figures from the json, nothing by hand
 """
 
-__version__ = "0.1.0"
+__version__ = "0.2.0"

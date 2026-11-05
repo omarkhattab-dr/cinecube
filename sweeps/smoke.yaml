@@ -2,9 +2,9 @@
 cubes:
   l1448: data/l1448_13co.fits
 out: results/smoke
-decoder: {mode: blind, quantize: true, noise_sigma: 0.00588, seed: 0}
-vis_thresh: 0.02
-controls: {n_seeds: 10, beam_px: 2.0}
+decoder: {mode: blind, recipe: jnd, jnd: 2.9}     # bujack 2026 bins, see docs/metrics.md
+vis_jnd: 2.3          # flux visible = 1 JND from the legends zero color
+controls: {beam_fwhm_px: 2.0}   # l1448: 46 arcsec beam / 23 arcsec px
 operators:
   - {name: log}
   - {name: asinh}

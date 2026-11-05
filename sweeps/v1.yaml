@@ -4,10 +4,11 @@ cubes:
   l1448: data/l1448_13co.fits
   disk: data/synthetic_disk.fits
 out: results/v1
-decoder: {mode: blind, quantize: true, noise_sigma: 0.00588, seed: 0}
-vis_thresh: 0.02
+decoder: {mode: blind, recipe: jnd, jnd: 2.9}     # bujack 2026 bins, see docs/metrics.md
+vis_jnd: 2.3          # flux visible = 1 JND from the legends zero color
 mask_k: 3.0
-controls: {n_seeds: 100, beam_px: 2.0}
+controls: {beam_fwhm_px: 2.0}   # l1448: 46 arcsec beam / 23 arcsec px
+beams: {l1448: 2.0, disk: 2.5}   # disk beam is what synth.py put in (beam_fwhm_px=2.5)
 operators:
   - name: log
   - name: asinh

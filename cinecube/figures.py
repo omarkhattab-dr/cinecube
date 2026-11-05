@@ -61,9 +61,9 @@ def ladder(card, out):
         for (lab, x), val in zip(cols, [r["data_recovered"], r["structure_kept"], r["flux_visible"]]):
             ax.add_patch(Rectangle((x, y - 0.3), 1.8, 0.6, color="#e5e7eb"))
             ax.add_patch(Rectangle((x, y - 0.3), 1.8 * max(min(val, 1), 0), 0.6, color=c))
-            ax.text(x + 1.85, y, "%.2f" % val, va="center", fontsize=7.5, color=INK)
+            ax.text(x + 1.85, y, "%.3f" % val if lab == "data recovered" else "%.2f" % val, va="center", fontsize=7.5, color=INK)
     b = card["bands"]
-    ax.text(0.1, -1.0, "bands from controls: preserving >= %.2f, conditional >= %.2f (data recovered)" % (b["preserving_min"], b["conditional_min"]), fontsize=7, color=MUTED)
+    ax.text(0.1, -1.0, "bands from controls: preserving >= %.3f (ceiling), conditional >= %.3f (2x beam), on data recovered" % (b["preserving_min"], b["conditional_min"]), fontsize=7, color=MUTED)
     fig.savefig(out, dpi=300, bbox_inches="tight"); plt.close(fig)
 
 
