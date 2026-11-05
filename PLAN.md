@@ -3,86 +3,97 @@
 project: how much science survives the shot? a fidelity instrument for cinematic renders of astro
 data cubes, from the proof renderer to blender. VIZA 701 fall 2026, dr kumar. omar + arash.
 full version with the timeline is in the claude doc, this is the short one for the repo.
-
-## what changed nov 4
-
-v1 kept blender in future work and used 1 real cube. not enough, the visuals have to be the real
-cinematic thing, on several objects, and the numbers stay. so:
-- 2 tracks, 1 reader. track A = python (exact, the proof, cheap numbers). track B = openvdb -> blender
-  cycles (the real production knobs). both scored by the same decoder + metrics.
-- 4 objects not 1: l1448 (filament), fake keplerian disk (truth known), an exoALMA 12CO disk, a
-  THINGS HI galaxy (or 2nd COMPLETE cloud if THINGS is down). crop to <= 256x256x128.
+2 tracks, 1 reader. track A = python (exact, the proof, cheap numbers). track B = openvdb -> blender
+cycles (real production knobs). same decoder + metrics score both. 4 objects: l1448, fake disk,
+exoALMA 12CO disk, THINGS HI galaxy (2nd COMPLETE cloud if THINGS is down).
 
 ## the 4 things nobody does
 
-1. **fidelity pass** - render a science pass (emission only, ortho, linear = moment0) next to the
-   beauty pass in the same blender scene, reader compares them per pixel -> fidelity heat map that
-   ships with the shot like a depth pass. per frame curve under an animation.
-2. **fidelity envelope** - the bands become a budget (stay conditional). for every knob, both
-   renderers, the largest setting still inside the band. hero shot per object = all knobs at their
-   envelope values, with its scorecard.
-3. **honest orbit** - on the fake disk the velocity-as-depth index gives a safe camera envelope.
-   camera rig that stays in it + a disclosure shot: flat map lifts into 3d while a fidelity gauge
-   drops. closer of the dec 4 talk.
-4. **cross object atlas** - same 16 operators on 4 objects, rank corr between the 4 ladders. is the
-   ranking universal or does absorption hurt a filament more than a disk.
+1. **fidelity pass** - science pass (emission only, ortho, linear = moment0) rendered next to the beauty
+   pass in the same blender scene, reader compares per pixel -> fidelity heat map that ships with the
+   shot like a depth pass
+2. **fidelity envelope** - bands = a budget (stay conditional). per knob, both renderers, the biggest
+   setting still in the band. hero shot per object = all knobs at envelope values + scorecard
+3. **honest orbit** - safe camera envelope from the velocity-as-depth index on the fake disk, a rig
+   that stays in it, + a disclosure shot (map lifts into 3d, fidelity gauge drops). dec 4 closer
+4. **cross object atlas** - same 16 operators on 4 objects, rank corr between the ladders. universal
+   or object dependent
 
-1 + 2 need blender, 3 + 4 only python (fallback if blender slips).
+## track A (python), in order. done = 4 scorecards + envelope + atlas + orbit + everything from make all
 
-## track A (python) - left to do
+- [x] A0 metrics v1 (nov 4, 5c2f2b5). reader never changes after this, weird objects go in discussion
+- [ ] A1 exoALMA disk: pick source (12CO 2-1, clean keplerian, < 500 MB), download, header (BUNIT
+      Jy/beam, FREQ, RESTFRQ, BMAJ), freq->km/s radio conv, Jy/beam->K, crop <= 256x256x128, file +
+      README line + cite exoALMA I + II, noise from edge channels, beam px -> yaml. equivalence passes
+- [ ] A2 THINGS galaxy: natural weighted cube of an inclined spiral, HI rest 1420.405751 MHz, velo axis
+      may be FELO/VELO, 2x downsample + crop, Jy/beam->K at 21cm, same checks. 2 days unreachable ->
+      fallback 2nd COMPLETE cloud (perseus 12CO)
+- [ ] A3 io.py hardening: FREQ/VRAD/VELO axes, K or Jy/beam, BMAJ or yaml beam, NaN padding (0 for the
+      render, out of the mask), edge channel noise. test_equivalence over every fits in data/,
+      test_io.py with a tiny fake fits. data/README 1 line per object. make test passes on 4 cubes
+- [ ] A4 sweep: v1.yaml 4 cubes 4 beams same grids. make sweep -> 4 scorecards. read every controls
+      table + bands line, dont retune, note weird ones for discussion. make figures draws 4 ladders
+- [ ] A5 envelope.py + make envelope: per numeric op per object the biggest grid value still >=
+      conditional (and >= preserving), scores at that value. none = always distorting, top of grid =
+      never costs (widen once). results/v1/envelope.json + envelope.md + fig_envelope.png
+- [ ] A6 atlas: fig_gallery_atlas.png (row per object, 6 ops), fig_atlas.png (4 ladders + 4x4
+      spearman), mean pairwise rank corr + list of ops whose band flips between objects
+- [ ] A7 honest orbit: safe angle per stretch (index < 1 - structure conditional band) in
+      index json, index.safe_path() 240 frame camera path json, inclinations 30/45/60,
+      fig_index.png with the envelope shaded
+- [ ] A8 bridge: sweep.frame_from_png(png, cube, cmap, scale, params, label) -> same row json into
+      results/blender/<obj>/frames/. round trip test matches in-memory score to 3 decimals
+- [ ] A9 freeze: fresh clone make all from zero (time it, README), results/v1 -> results/frozen,
+      git tag v1.0-results, paper/numbers.md with the json path next to every number
 
-- io.py: freq axis -> km/s, BUNIT, BMAJ from header, edge channel noise. equivalence test on all 4 cubes
-- sweeps/v1.yaml gets the 2 new cubes + beams, make sweep -> 4 scorecards
-- envelope.py (new): per operator per object the biggest param value still >= conditional
-- figures.py: atlas (4 ladders + 4x4 spearman matrix)
-- index.py: safe envelope angle per stretch + camera path sampler
-- sweep.frame_from_png(): score any png + legend + scale with the same code (blender bridge)
+## track B (openvdb -> blender), in order. starts after A3, needs A8 before B5. cinecube/blender/
 
-## track B (openvdb -> blender) - cinecube/blender/
+- [ ] B1 export_vdb.py: float grid "density" = T clipped at 0 (K), voxel 1,1,stretch, dv + hash +
+      scale in metadata + json. openvdb from conda-forge on the render box, fallback export in the
+      container and copy the .vdb. 1 per object + the fake disks true density as a 2nd grid
+- [ ] B2 scene.py (blender -b -P scene.py -- spec.json): import vdb, principled volume emission ~
+      density, absorb 0 scatter 0, world black, ortho cam down v framing the full field pixel
+      aligned, view transform Standard look None exposure 0 gamma 1, 32 bit exr + 8 bit png, no
+      denoise, fixed samples + step size in the spec. every B4 knob = a spec field defaulting to off
+- [ ] B3 THE GATE: plain render vs moment0, 1 fitted scale, max rel dev in the mask < 1%, vary step
+      size + samples until it stops moving. results/blender/gate_<obj>.json (scale, dev, step,
+      samples, blender version). repeat on the other 3. 2 days max, fail -> blender = scored black
+      box, residual is a result, envelope from python only. fig_blender_gate.png
+- [ ] B4 knob sweep (sweeps/blender_v1.yaml -> sweep_specs.py -> 1 spec per frame): absorption,
+      scatter + anisotropy, lights, color ramp, view transform (AgX/filmic/standard looks), dof,
+      glare, grain, exposure, orbit + v stretch. 4-6 values each, every object. 512 px 64 samples,
+      200 frames. save exr + png + science pass + spec per frame
+- [ ] B5 score.py: every png through frame_from_png, legendless frames (lit, scattered, AgX) read
+      with the gray legend of the science pass (paper says so), orbit frames scored twice like
+      track A, results/blender/<obj>/scorecard.json same shape so figures.py just works,
+      fig_twins_<obj>.png (blender curve over python curve per knob)
+- [ ] B6 fidelity pass + heroes: fidelity map exr per frame (abs err decoded beauty vs science
+      pass / display scale), compositor overlay template with toggle + legend, envelope_to_spec.py
+      (A5 values -> blender units), hero frame per object 1920x1080 256 samples with + without
+      overlay, 240 frame l1448 turntable scored per frame
+- [ ] B7 disclosure shot: fake disk, 10 s, plain map -> 30 deg orbit 2x stretch along the A7 safe
+      path, index as a gauge. 2nd version that leaves the envelope on purpose. 5 frame strip in
+      fig_index.png
+- [ ] B8 freeze: results/blender -> results/frozen/blender, media -> results/frozen/media (git
+      ignored, archived), numbers into paper/numbers.md
 
-1. export_vdb.py: T clipped at 0 as float grid "density" (K), voxel 1,1,stretch, dv + hash + scale in
-   metadata and a json. writer = openvdb from conda-forge on the mac. fallback: export in the
-   container, drop the .vdb on the mac (2 to 30 MB each)
-2. scene.py (runs inside blender -b -P): import vdb, principled volume emission ~ density, absorption
-   0 scatter 0, ortho cam down v, world black, view transform Standard look None exposure 0 gamma 1,
-   32 bit exr, no denoise, fixed samples + step size. scene always built from a json spec
-3. THE GATE: plain blender render vs moment0. pass = 1 fitted scale factor + max rel dev < 1% in the
-   mask. nothing in track B counts before this passes. 2 days max (nov 10), then fallback
-4. knobs (4-6 values each, every object): absorption, scatter + anisotropy, lights, color ramp,
-   view transform (AgX / filmic / standard looks), dof, glare, grain, exposure, orbit + v stretch
-5. score.py: every render = beauty exr + 8 bit png + science pass + json. frame_from_png scores the
-   png. no legend frames (lit, scattered) use the gray legend of the science pass, paper says so
-6. fidelity pass compositor template + per frame scores on a 240 frame turntable + hero frame per
-   object at envelope values, 1920x1080 256 samples
-7. disclosure shot on the fake disk, 10 s, plain map -> 30 deg orbit 2x stretch, index as a gauge
+## pace (targets not a people split)
 
-budget: sweeps 512px 64 samples. 10 knobs x 5 values x 4 objects = 200 frames = 1 evening.
-heroes + 2 animations = 1 more evening.
-
-## who
-
-| | omar | arash |
-| --- | --- | --- |
-| code | vdb export, scene builder, gate, blender sweep, fidelity pass, heroes, disclosure, envelope.py | io.py hardening, 4 object sweep, atlas, honest orbit sampler, gallery |
-| paper | abstract, method (blender half), results, discussion, future work | intro, related, method (python half), conclusion |
-| talks | nov 13 blender gate + first blender scores, dec 4 closer | nov 13 gallery + atlas, nov 20 envelope + orbit, dec 4 opener |
-
-## weeks
-
-| when | deliverable | gate |
-| --- | --- | --- |
-| nov 5-8 | 4 cubes load + pass equivalence, vdb of l1448 opens in blender, gate number in results/blender/gate_l1448.json | fri sync |
-| nov 9-13 | scorecard v1 on 4 objects, atlas, blender knob sweep on l1448, twin figure | progress pres 1, nov 13 |
-| nov 16-20 | envelope tables, honest orbit, blender on all objects, fidelity pass, hero shots, method + related drafted | progress pres 2, nov 20 |
-| nov 23-25 | disclosure shot, freeze (git tag v1.0-results, copy results/v1 + results/blender -> results/frozen) | wed nov 25 |
-| nov 26 - dec 3 | results + discussion from frozen json, swap sections dec 1, deck dec 2, fresh clone make all + pdflatex from zero dec 3 | dec 4 |
+| when | what |
+| --- | --- |
+| nov 5-8 | A1 A2 A3, B1 B2, B3 started |
+| nov 9-13 | A4 A5 A6, B3 done, B4 on l1448, B5 -> progress pres 1 nov 13 |
+| nov 16-20 | A7 A8, B4 all objects, B6 -> progress pres 2 nov 20 |
+| nov 23-25 | B7, A9 + B8 freeze wed nov 25 (git tag v1.0-results) |
+| nov 26 - dec 3 | paper from frozen json, swap sections dec 1, deck dec 2, fresh clone check dec 3 |
+| dec 4 | submit + present |
 
 nov 26 is the holiday, ask kumar if the 3rd progress slot moves.
 
 ## fallbacks
 
-- blender gate fails (> 1% after nov 10): blender stays a scored black box, the residual is a result
-  by itself, envelope from python only
+- blender gate fails (> 1% after nov 10): blender stays a scored black box, residual is a result,
+  envelope from python only
 - vdb export wont install: export in the container, copy the files. houdini via viz lab 2nd
 - cubes too big / unreachable: crop + 2x downsample, galaxy -> 2nd COMPLETE cloud
 - blender too slow: 256 px 32 samples for sweeps, drop scatter
