@@ -5,7 +5,7 @@ data cubes, from the proof renderer to blender. VIZA 701 fall 2026, dr kumar. om
 full version with the timeline is in the claude doc, this is the short one for the repo.
 2 tracks, 1 reader. track A = python (exact, the proof, cheap numbers). track B = openvdb -> blender
 cycles (real production knobs). same decoder + metrics score both. 4 objects: l1448, fake disk,
-exoALMA 12CO disk, THINGS HI galaxy (2nd COMPLETE cloud if THINGS is down).
+exoALMA 12CO 3-2 disk (J1615, in repo), THINGS HI galaxy (2nd COMPLETE cloud if THINGS is down).
 
 ## the 4 things nobody does
 
@@ -22,9 +22,11 @@ exoALMA 12CO disk, THINGS HI galaxy (2nd COMPLETE cloud if THINGS is down).
 ## track A (python), in order. done = 4 scorecards + envelope + atlas + orbit + everything from make all
 
 - [x] A0 metrics v1 (nov 4, 5c2f2b5). reader never changes after this, weird objects go in discussion
-- [ ] A1 exoALMA disk: pick source (12CO 2-1, clean keplerian, < 500 MB), download, header (BUNIT
-      Jy/beam, FREQ, RESTFRQ, BMAJ), freq->km/s radio conv, Jy/beam->K, crop <= 256x256x128, file +
-      README line + cite exoALMA I + II, noise from edge channels, beam px -> yaml. equivalence passes
+- [x] A1 exoALMA disk (nov 4): J1615-3255 12CO 3-2 (exoALMA is band 7, no 2-1. every cube in the
+      release is 1.26 GB so < 500 MB wasnt an option, downloaded 1 and cropped). cinecube.prep crops
+      the middle 256x256x128, Jy/beam->K, FREQ->km/s radio, beam 6 px from the header, prep json +
+      HISTORY say what it did. data/exoalma_j1615_12co.fits 34 MB. equivalence + test_io pass, smoke
+      controls ceiling 0.970 > beam 0.926 > shuffled 0. note in docs/metrics.md about the dynamic range
 - [ ] A2 THINGS galaxy: natural weighted cube of an inclined spiral, HI rest 1420.405751 MHz, velo axis
       may be FELO/VELO, 2x downsample + crop, Jy/beam->K at 21cm, same checks. 2 days unreachable ->
       fallback 2nd COMPLETE cloud (perseus 12CO)

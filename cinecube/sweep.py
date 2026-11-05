@@ -67,7 +67,7 @@ def run_cube(cfg, key, path, out_root):
     m0 = moment0(cube)
     ref = render(cube.T, cube.dv)
     ref01 = norm_disp(ref)
-    mask = sky_mask(m0, cube.sigma_m0, cfg.get("mask_k", 3.0))
+    mask = sky_mask(m0, cube.sigma_m0, cfg.get("mask_k", 3.0), cube.valid)
     out = os.path.join(out_root, key)
     os.makedirs(os.path.join(out, "frames"), exist_ok=True)
     dec = dict(cfg.get("decoder") or {})
@@ -77,9 +77,14 @@ def run_cube(cfg, key, path, out_root):
 
     equiv = float(np.max(np.abs(ref - m0)))
     print("[%s] cube %s  dv %.4f km/s  sigma %.3f K  |ref - m0|max %.2e  mask %d px" % (key, cube.shape, cube.dv, cube.sigma, equiv, int(mask.sum())))
+    if cube.meta.get("converted"):
+        print("[%s] loader: %s, %s" % (key, cube.meta["converted"], cube.meta.get("spectral_in")))
 
     ctrl_cfg = cfg.get("controls") or {}
-    beam = (cfg.get("beams") or {}).get(key, ctrl_cfg.get("beam_fwhm_px", 2.0))   # per cube beam if the yaml has one
+    # beam fwhm in px: yaml beams[key] wins, then the fits header, then controls.beam_fwhm_px
+    beam = (cfg.get("beams") or {}).get(key) or cube.beam_fwhm_px or ctrl_cfg.get("beam_fwhm_px", 2.0)
+    beam = float(beam)
+    print("[%s] beam %.2f px (%s)" % (key, beam, "yaml" if (cfg.get("beams") or {}).get(key) else cube.meta.get("beam_source", "default")))
     ctrl = controls(m0, ref, mask, beam_fwhm_px=beam, decoder=dec, jnd_vis=vis)
     bands = bands_from_controls(ctrl)
     if cfg.get("bands"):
@@ -107,7 +112,7 @@ def run_cube(cfg, key, path, out_root):
         if name == "orbit":
             cm = render(cube.T, cube.dv, theta_deg=params["theta"], aspect=params["aspect"])
             cm_c = center_crop_like(cm, ref) if cm.shape != ref.shape else cm
-            s2 = score_frame(cm_c, norm_disp(cm_c), recovered, cm_c > 3 * cube.sigma_m0, fr["rgb"], zero, vis)
+            s2 = score_frame(cm_c, norm_disp(cm_c), recovered, sky_mask(cm_c, cube.sigma_m0, 3.0, cube.valid if cm_c.shape == cube.valid.shape else None), fr["rgb"], zero, vis)
             row["camera_matched"] = s2["headline"]
         tag = "%03d_%s" % (i, name) + ("" if not params else "_" + "_".join("%s%s" % (k, v) for k, v in params.items()))
         tag = tag.replace(".", "p").replace(" ", "")
@@ -117,7 +122,7 @@ def run_cube(cfg, key, path, out_root):
         print("  %-36s data %.3f  structure %.3f  flux %.2f  %s" % (fr["label"], row["data_recovered"], row["structure_kept"], row["flux_visible"], row["band"]))
 
     card = dict(cube=key, path=path, cube_hash=chash, shape=list(cube.shape), dv=cube.dv, sigma=cube.sigma, equivalence_max_abs_diff=equiv,
-                m0_max=float(m0.max()), mask_pixels=int(mask.sum()), decoder=dict(mode=mode, **dec), vis_jnd=vis, beam_fwhm_px=beam, bands=bands,
+                m0_max=float(m0.max()), mask_pixels=int(mask.sum()), decoder=dict(mode=mode, **dec), vis_jnd=vis, beam_fwhm_px=beam, cube_meta=cube.meta, bands=bands,
                 controls=ctrl, rows=rows, version=__version__, seconds=round(time.time() - t0, 1))
     json.dump(card, open(os.path.join(out, "scorecard.json"), "w"), indent=1)
     print("[%s] %d frames in %.1f s -> %s" % (key, len(rows), card["seconds"], os.path.join(out, "scorecard.json")))

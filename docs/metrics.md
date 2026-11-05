@@ -117,3 +117,19 @@ log stretch scores 0.987 on l1448, 0.003 under the conditional line. a rank corr
 all under a monotone stretch, so that 0.003 is the 26 level quantization deciding which faint pixels
 tie. the bands are tight enough that a 0.003 gap is "distorting", so the paper reports the number
 next to the band and does not pretend the line is sharp. same reason the ladder prints 3 decimals.
+
+## the alma disk (A1, nov 4): what the reader does on a high dynamic range object
+
+j1615 (exoALMA 12CO 3-2, 256x256x128, beam 6 px). controls: ceiling 0.970 / 0.735 / 0.95, beam blur
+0.926 / 0.689 / 0.96, shuffled 0.000. so the bands are preserving >= 0.970, conditional >= 0.926,
+way looser than l1448 (0.998 / 0.990). 2 reasons, both real:
+- the plain gray display with 26 readable levels cant show a disk whose center is 196 K km/s and whose
+  outer parts sit at a few sigma. most mask pixels land in the bottom 2-3 bins -> rank corr 0.97 and
+  5% of the real flux is under 1 JND from black in the plain display (flux 0.95 for the reference!)
+- the random ramp control (gray with gamma 0.5) scores 0.992 > ceiling. a gamma spreads the faint
+  disk over more bins. same for some operators (non monotone grade 0.988, absorption tau 0.35 0.970).
+  so on this object "preserving" includes things that beat the plain display, which is fine by the
+  definition (>= ceiling) but has to be said in the paper: the reference *display* is not the best
+  display, its the honest one (linear), and the reader measures against the data not the display.
+l1448 doesnt show this because its dynamic range is small (peak 7.4 K km/s, mask almost everything).
+this is exactly what the atlas (A6) is for.

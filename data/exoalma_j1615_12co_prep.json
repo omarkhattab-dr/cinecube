@@ -1,0 +1,43 @@
+{
+ "source_file": "J1615_12CO_fiducial.image.fits",
+ "dataset_doi": "10.7910/DVN/CFHWNH",
+ "file_id": "11120493",
+ "citation": "exoALMA I (Teague et al. 2025) and exoALMA II (Loomis et al. 2025)",
+ "shape_in": [
+  301,
+  1024,
+  1024
+ ],
+ "shape_out": [
+  128,
+  256,
+  256
+ ],
+ "unit_in": "Jy / beam",
+ "unit_out": "K",
+ "spectral_in": "FREQ",
+ "spectral_out": "VRAD km/s radio",
+ "restfrq_hz": 345795989900.0,
+ "channels": [
+  84,
+  212
+ ],
+ "pixels_y": [
+  384,
+  640
+ ],
+ "pixels_x": [
+  384,
+  640
+ ],
+ "block_mean": 1,
+ "pixel_arcsec_in": 0.024999999999998402,
+ "pixel_arcsec_out": 0.024999999999998402,
+ "beam_arcsec": 0.149999998334832,
+ "beam_fwhm_px": 5.9999999333936636,
+ "dv_kms": 0.10000000002753229,
+ "v_kms": [
+  -1.8540000230928673,
+  10.845999980403736
+ ]
+}
