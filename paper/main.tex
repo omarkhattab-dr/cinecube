@@ -1,0 +1,46 @@
+% main.tex - viza701 paper, group 5. overleaf, pdflatex + bibtex
+% sections in sections/, figs in figures/ (make figures fills it from the repo)
+\documentclass[11pt,letterpaper]{article}
+\usepackage[margin=1in]{geometry}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{graphicx}
+\usepackage{amsmath}
+\usepackage{booktabs}
+\usepackage{natbib}
+\usepackage{hyperref}
+\usepackage{xcolor}
+\usepackage{caption}
+\captionsetup{font=small,labelfont=bf}
+\graphicspath{{figures/}}
+\hypersetup{colorlinks=true,linkcolor=black,citecolor=blue!60!black,urlcolor=blue!60!black}
+
+% header stuff, TODO put the real UINs
+\newcommand{\myname}{Omar Khattab and Arash Baghipour Aliabadi}
+\newcommand{\myuin}{UIN: 000000000 (Omar), 000000000 (Arash)}
+\newcommand{\mycourse}{VIZA 701: Introduction to Research in Visual Computing and Interactive Media}
+\newcommand{\myinstructor}{Instructor: Dr. Suryansh Kumar}
+
+\title{How much science survives the shot?\\
+\large Measuring cinematic rendering choices against astronomical data cubes}
+\author{\myname\\[2pt] \small \myuin\\ \small \mycourse\\ \small \myinstructor}
+\date{December 4, 2026}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+\input{sections/00_abstract}
+\end{abstract}
+
+\input{sections/01_introduction}
+\input{sections/02_related_work}
+\input{sections/03_method}
+\input{sections/04_results}
+\input{sections/05_discussion}
+\input{sections/06_future_work}
+\input{sections/07_conclusion}
+
+\bibliographystyle{unsrtnat}
+\bibliography{refs}
+\end{document}

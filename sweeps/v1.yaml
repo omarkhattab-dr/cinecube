@@ -1,0 +1,38 @@
+# sweep v1 - every operator at default + a short grid per family
+# run: make sweep  (or python -m cinecube.sweep sweeps/v1.yaml)
+cubes:
+  l1448: data/l1448_13co.fits
+  disk: data/synthetic_disk.fits
+out: results/v1
+decoder: {mode: blind, quantize: true, noise_sigma: 0.00588, seed: 0}
+vis_thresh: 0.02
+mask_k: 3.0
+controls: {n_seeds: 100, beam_px: 2.0}
+operators:
+  - name: log
+  - name: asinh
+  - name: threshold
+    grid: {k: [1, 2, 3, 5]}
+  - name: absorb
+    grid: {tau: [0.1, 0.25, 0.35, 0.5, 1.0, 1.5, 2.0]}
+  - name: mip
+  - name: colormap
+    grid: {cmap: [inferno, viridis, gray, jet]}
+  - name: grade_teal_orange
+    grid: {strength: [0.2, 0.4, 0.6]}
+  - name: grade_nonmonotone
+  - name: orbit
+    grid: {theta: [0, 10, 20, 30, 45, 60, 90], aspect: [1, 2, 3]}
+  - name: dof
+    grid: {sigma: [0.5, 1, 2, 3, 4]}
+  - name: shading
+    grid: {strength: [0.2, 0.35, 0.6, 0.7]}
+  - name: bloom
+    grid: {gain: [0.5, 1.0, 1.6]}
+  - name: vignette
+    grid: {strength: [0.25, 0.5]}
+  - name: grain
+  - name: spectral_bin
+    grid: {factor: [2, 4]}
+  - name: sky_resample
+    grid: {factor: [2, 4], method: [nearest, bilinear]}

@@ -1,0 +1,24 @@
+# smoke sweep - 1 frame per operator, l1448 only, few seconds
+cubes:
+  l1448: data/l1448_13co.fits
+out: results/smoke
+decoder: {mode: blind, quantize: true, noise_sigma: 0.00588, seed: 0}
+vis_thresh: 0.02
+controls: {n_seeds: 10, beam_px: 2.0}
+operators:
+  - {name: log}
+  - {name: asinh}
+  - {name: threshold}
+  - {name: absorb, params: {tau: 0.35}}
+  - {name: absorb, params: {tau: 1.5}}
+  - {name: mip}
+  - {name: colormap, params: {cmap: inferno}}
+  - {name: colormap, params: {cmap: jet}}
+  - {name: grade_teal_orange}
+  - {name: grade_nonmonotone}
+  - {name: orbit, params: {theta: 30, aspect: 1}}
+  - {name: orbit, params: {theta: 30, aspect: 3}}
+  - {name: dof}
+  - {name: shading}
+  - {name: bloom}
+  - {name: vignette}

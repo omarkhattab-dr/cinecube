@@ -1,0 +1,20 @@
+# results get remade by make, only the frozen folder (week 4) is committed
+results/*
+!results/frozen/
+!results/README.md
+data/synthetic_disk*.fits
+data/synthetic_disk*_truth.npz
+__pycache__/
+*.pyc
+.pytest_cache/
+.venv/
+.DS_Store
+paper/*.aux
+paper/*.log
+paper/*.out
+paper/*.bbl
+paper/*.blg
+paper/*.synctex.gz
+paper/*.fdb_latexmk
+paper/*.fls
+paper/main.pdf

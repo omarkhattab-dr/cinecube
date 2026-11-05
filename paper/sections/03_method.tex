@@ -1,0 +1,27 @@
+\section{Method}
+% arash + me. basically docs/metrics.md from the repo. subsections below, max 2 pages
+\label{sec:method}
+
+\subsection{Data}
+% l1448 (fcrao complete, ridge 2006) + the fake keplerian disk (cinecube.synth)
+
+\subsection{The reference render and the equivalence}
+% emission only render integral. linear TF, no absorption, ortho camera down the v axis
+% -> sum_v T dv = moment0. same eq with physical coefficients = radiative transfer w/o
+% scattering (max 1995, peters 2014)
+\begin{equation}
+  I(x,y) \;=\; \sum_{v} T(x,y,v)\,\Delta v \;=\; M_0(x,y)
+  \label{eq:equivalence}
+\end{equation}
+
+\subsection{Cinematic operators}
+% 8 families, each a pure function with logged params, expected failure class per family
+
+\subsection{Decoding a frame back to data}
+% quantize, display noise, nearest colormap color in CIELAB (bujack 2026), blind vs informed
+
+\subsection{Scores, controls and bands}
+% data recovered (spearman over sky mask), structure kept (ssim), flux visible, the 5 controls, bands
+
+\subsection{The synthetic disk and the velocity-as-depth index}
+% disk model, 2 worlds same camera, index = 1 - ssim between ppv render and true density render
