@@ -58,13 +58,16 @@ class Cube:
 def load_cube(path, name=None, n_edge=3, beam_fwhm_px=None):
     """read a fits cube with spectral-cube, give back a Cube in K and km/s
 
-    beam_fwhm_px: pass it when the header has no beam (l1448). header beam wins when both exist
+    beam_fwhm_px: an explicit beam (from the yaml) wins over the header. None -> header, else None
+    n_edge: how many channels at each end of the band count as empty for the noise
     """
     from spectral_cube import SpectralCube
     import astropy.units as u
 
     sc = SpectralCube.read(path)
-    meta = dict(unit_in=str(sc.unit), spectral_in=str(sc.spectral_axis.unit), ctype3=str(sc.wcs.wcs.ctype[2]))
+    if hasattr(sc, "stokes_data"):          # 4d aips cube -> first stokes
+        sc = sc.stokes_data[list(sc.components)[0]]
+    meta = dict(unit_in=str(sc.unit), spectral_in=str(sc.spectral_axis.unit), ctype3=str(sc.wcs.wcs.ctype[2]), n_edge=n_edge)
 
     # spectral axis -> km/s. alma gives FREQ, so radio convention with the rest freq from the header
     rest = sc.header.get("RESTFRQ") or sc.header.get("RESTFREQ")
@@ -95,12 +98,15 @@ def load_cube(path, name=None, n_edge=3, beam_fwhm_px=None):
     pix = pixel_arcsec(sc)
     meta["pixel_arcsec"] = pix
     bmaj = header_beam_arcsec(sc)
-    if bmaj is not None and pix:
-        beam_fwhm_px = bmaj / pix
+    if bmaj is not None:
         meta["beam_arcsec"] = bmaj
-        meta["beam_source"] = "header"
-    elif beam_fwhm_px is not None:
+    if beam_fwhm_px is not None:
         meta["beam_source"] = "given"
+    elif bmaj is not None and pix:
+        beam_fwhm_px = bmaj / pix
+        meta["beam_source"] = "header"
+    else:
+        meta["beam_source"] = "none"
     meta["beam_fwhm_px"] = beam_fwhm_px
 
     sigma = noise_sigma(T, n_edge, valid)

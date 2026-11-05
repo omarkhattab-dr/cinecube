@@ -7,7 +7,8 @@ sweep.py - run a yaml sweep, 1 png + 1 json per frame, then a scorecard
 yaml looks like this (see sweeps/v1.yaml):
     cubes:
       l1448: data/l1448_13co.fits
-    beams: {l1448: 2.0}      # beam fwhm in px per cube, falls back to controls.beam_fwhm_px
+    beams: {l1448: 2.0}      # beam fwhm in px per cube. yaml > fits header > controls.beam_fwhm_px
+    noise_edge_channels: 3   # empty channels at each end of the band for the noise
     out: results/v1
     decoder: {mode: blind, recipe: jnd, jnd: 2.9}
     vis_jnd: 2.3
@@ -63,7 +64,8 @@ def save_png(rgb, path):
 
 def run_cube(cfg, key, path, out_root):
     t0 = time.time()
-    cube = load_cube(path, name=key)
+    yaml_beam = (cfg.get("beams") or {}).get(key)
+    cube = load_cube(path, name=key, n_edge=cfg.get("noise_edge_channels", 3), beam_fwhm_px=float(yaml_beam) if yaml_beam else None)
     m0 = moment0(cube)
     ref = render(cube.T, cube.dv)
     ref01 = norm_disp(ref)
@@ -81,10 +83,9 @@ def run_cube(cfg, key, path, out_root):
         print("[%s] loader: %s, %s" % (key, cube.meta["converted"], cube.meta.get("spectral_in")))
 
     ctrl_cfg = cfg.get("controls") or {}
-    # beam fwhm in px: yaml beams[key] wins, then the fits header, then controls.beam_fwhm_px
-    beam = (cfg.get("beams") or {}).get(key) or cube.beam_fwhm_px or ctrl_cfg.get("beam_fwhm_px", 2.0)
-    beam = float(beam)
-    print("[%s] beam %.2f px (%s)" % (key, beam, "yaml" if (cfg.get("beams") or {}).get(key) else cube.meta.get("beam_source", "default")))
+    # beam fwhm in px: yaml beams[key] wins (load_cube got it), then the fits header, then controls.beam_fwhm_px
+    beam = float(cube.beam_fwhm_px or ctrl_cfg.get("beam_fwhm_px", 2.0))
+    print("[%s] beam %.2f px (%s)" % (key, beam, "yaml" if yaml_beam else cube.meta.get("beam_source", "default")))
     ctrl = controls(m0, ref, mask, beam_fwhm_px=beam, decoder=dec, jnd_vis=vis)
     bands = bands_from_controls(ctrl)
     if cfg.get("bands"):

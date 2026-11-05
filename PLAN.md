@@ -34,9 +34,11 @@ exoALMA 12CO 3-2 disk (J1615, in repo), THINGS HI galaxy (NGC 2403, in repo) (2n
       data/things_ngc2403_hi.fits 36 MB. tests pass (30), smoke controls ceiling 0.995 > beam 0.807 >
       shuffled 0.002. the beam blur costs a lot here because the unmasked moment0 is noisy (116 K km/s
       vs 3100 peak), so the conditional band is loose on this object. in docs/metrics.md
-- [ ] A3 io.py hardening: FREQ/VRAD/VELO axes, K or Jy/beam, BMAJ or yaml beam, NaN padding (0 for the
-      render, out of the mask), edge channel noise. test_equivalence over every fits in data/,
-      test_io.py with a tiny fake fits. data/README 1 line per object. make test passes on 4 cubes
+- [x] A3 io.py hardening (nov 4): FREQ (radio, RESTFRQ) / VRAD / FELO-VELO axes, K or Jy/beam, 4d stokes
+      cubes, beam from BMAJ or the AIPS HISTORY line, yaml beam wins over the header, NaN padding (0 for
+      the render, out of the mask + noise), noise_edge_channels in the yaml. test_equivalence over every
+      real fits in data/, test_io.py = 1 fake fits per case checked against astropy by hand (6 tests).
+      35 tests. make test from a fresh clone passes
 - [ ] A4 sweep: v1.yaml 4 cubes 4 beams same grids. make sweep -> 4 scorecards. read every controls
       table + bands line, dont retune, note weird ones for discussion. make figures draws 4 ladders
 - [ ] A5 envelope.py + make envelope: per numeric op per object the biggest grid value still >=
