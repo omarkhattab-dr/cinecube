@@ -42,9 +42,12 @@ exoALMA 12CO 3-2 disk (J1615, in repo), THINGS HI galaxy (NGC 2403, in repo) (2n
 - [x] A4 sweep (nov 4): v1.yaml 4 cubes, same grids, make sweep -> 4 scorecards in 4m54 (11 + 17 + 108 +
       155 s). controls ordered on all 4, no broken bands. 4 object controls + bands table in
       docs/metrics.md (results note). make figures draws 4 ladders, 4 galleries, 4 family plots
-- [ ] A5 envelope.py + make envelope: per numeric op per object the biggest grid value still >=
-      conditional (and >= preserving), scores at that value. none = always distorting, top of grid =
-      never costs (widen once). results/v1/envelope.json + envelope.md + fig_envelope.png
+- [x] A5 envelope (nov 5): envelope.py + make envelope + fig_envelope.png + 2 tests. first crossing
+      along the grid, none / top / value, categorical ops list whats inside, 2 param ops get 1 line per
+      fixed value. grids widened once (orbit fine near 0, dof/bloom/vignette/grade/grain/bin/resample
+      further out), 97 frames per cube, sweep 7 min. rules in docs/metrics.md: camera 0-4 deg is the
+      whole budget, absorption tau 0.25 (l1448) to 0.5 (ngc2403), post effects nearly free except on
+      l1448, spectral bin always free
 - [ ] A6 atlas: fig_gallery_atlas.png (row per object, 6 ops), fig_atlas.png (4 ladders + 4x4
       spearman), mean pairwise rank corr + list of ops whose band flips between objects
 - [ ] A7 honest orbit: safe angle per stretch (index < 1 - structure conditional band) in

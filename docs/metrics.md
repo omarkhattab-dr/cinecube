@@ -190,3 +190,42 @@ the bands being broken. things for discussion (not for retuning):
   so flux visible alone cant tell noise from data. its the 3rd score for a reason, not the 1st
 - the conditional width goes from 0.008 (l1448) to 0.19 (ngc2403). twice the beam means something
   different on a clean single dish map and on a noisy 61 channel sum. same rule, 4 answers
+
+## results note (A5, nov 5): envelopes, sweep v1 with the grids widened once
+
+make envelope -> results/v1/envelope.json + envelope.md, fig_envelope.png. envelope = biggest grid value
+still inside the band, first crossing (a dip stops it). 97 frames per cube after the widening (orbit
+theta 0 2 4 6 8 10 15 20 30 45 60 90, dof to 8, bloom gain to 4, vignette to 1, grade to 1, grain
+0.01-0.1, bin + resample to 8). the rules it gives, "stay conditional":
+
+| knob | l1448 | disk | j1615 | ngc2403 |
+| --- | --- | --- | --- | --- |
+| absorption tau up to | 0.25 | 0.35 | 0.35 | 0.5 |
+| lighting strength up to | 0.2 | 0.6 | 0.35 | 0.6 |
+| orbit at 1x stretch up to | 0 deg | 2 deg | 4 deg | 4 deg |
+| orbit at 2x / 3x | 0 / 0 | 0 / 0 | 2 / 0 | 2 / 0 |
+| dof sigma up to | 4 | 6 | 8 (top) | 4 |
+| threshold k up to | 1 | 2 | 1 | 2 |
+| bloom gain up to | 1.0 | 4 (top) | 4 (top) | 4 (top) |
+| vignette up to | none | 1.0 (top) | 0.5 | 1.0 (top) |
+| teal orange grade up to | 1.0 (top) | 1.0 (top) | 0.2 | 1.0 (top) |
+| sky resample | none | 2x | 4x | 2x |
+| spectral bin | 8 (top) | 8 (top) | 8 (top) | 8 (top) |
+
+what it says:
+- the camera is the expensive knob everywhere. 0 to 4 degrees of orbit is all the budget allows on any
+  object, and any velocity stretch above 1x kills it. everything the paper says about "3d" cinematic
+  cubes starts from this number. A7 (honest orbit on the disk, fine grid 0-10 deg) is where it gets
+  resolved properly
+- absorption and lighting envelopes scale with the object: the clean single dish filament (l1448)
+  tolerates least (tau 0.25, light 0.2), the noisy galaxy most (tau 0.5, light 0.6), because its band is
+  the loosest. so "how much absorption is ok" has no single answer, it depends on how noisy the map
+  already is. thats a real result for the atlas, not a calibration problem
+- post effects (bloom, vignette, grain, grade) are nearly free on 3 of 4 objects even at the top of the
+  widened grids. l1448 is the exception: vignette is always out and bloom stops at gain 1, because on
+  a map where everything is signal (mask = 94% of pixels) darkening the corners deletes real flux
+- spectral binning up to 8 never leaves the band anywhere. summing channels before the render is the
+  same sum the moment0 does, so the reader cant see it. correct, and it means spectral_bin isnt a
+  cinematic cost, its free compression
+- "top of grid" survivors after one widening (bloom, vignette, grade, grain, bin): the rule says widen
+  once, done. theyre reported as "never costs anything at the tested range", not widened again
