@@ -143,3 +143,50 @@ peak of 3100 and the faint half of the mask is noise ordered. blurring to 2x the
 pixels -> rank corr 0.81. nothing to fix, thats what "no worse than twice the beam" means on a cube like
 this, but it makes the conditional band loose (log stretch 0.822 is conditional here, distorting on l1448).
 3 objects, 3 different band widths: l1448 0.998/0.990, j1615 0.970/0.926, ngc2403 0.995/0.807.
+
+## results note (A4, nov 4): controls and bands on all 4 objects, sweep v1
+
+same grids, same reader, nothing tuned per object. make sweep, ~5 min for 4 x 65 frames.
+
+| object | control | data recovered | structure kept | flux visible |
+| --- | --- | --- | --- | --- |
+| l1448 | ceiling | 0.998 | 0.960 | 1.00 |
+| l1448 | beam blur | 0.990 | 0.855 | 1.00 |
+| l1448 | noise only | 0.001 | 0.021 | 0.87 |
+| l1448 | shuffled | 0.011 | 0.024 | 0.94 |
+| l1448 | random ramp | 0.998 | 0.736 | 1.00 |
+| disk | ceiling | 0.998 | 0.862 | 1.00 |
+| disk | beam blur | 0.895 | 0.372 | 1.00 |
+| disk | noise only | 0.015 | 0.014 | 0.87 |
+| disk | shuffled | 0.011 | 0.015 | 0.51 |
+| disk | random ramp | 0.996 | 0.491 | 1.00 |
+| j1615 | ceiling | 0.970 | 0.735 | 0.95 |
+| j1615 | beam blur | 0.926 | 0.689 | 0.96 |
+| j1615 | noise only | -0.001 | 0.011 | 0.87 |
+| j1615 | shuffled | 0.000 | 0.096 | 0.46 |
+| j1615 | random ramp | 0.992 | 0.362 | 1.00 |
+| ngc2403 | ceiling | 0.995 | 0.799 | 1.00 |
+| ngc2403 | beam blur | 0.807 | 0.361 | 0.99 |
+| ngc2403 | noise only | 0.002 | 0.009 | 0.86 |
+| ngc2403 | shuffled | 0.002 | 0.015 | 0.52 |
+| ngc2403 | random ramp | 0.996 | 0.478 | 1.00 |
+
+bands that came out of it (data recovered / structure kept):
+
+| object | preserving >= | conditional >= | structure preserving >= | structure conditional >= | frames preserving / conditional / distorting |
+| --- | --- | --- | --- | --- | --- |
+| l1448 | 0.998 | 0.990 | 0.960 | 0.855 | 9 / 15 / 41 |
+| disk | 0.998 | 0.895 | 0.862 | 0.372 | 8 / 28 / 29 |
+| j1615 | 0.970 | 0.926 | 0.735 | 0.689 | 13 / 19 / 33 |
+| ngc2403 | 0.995 | 0.807 | 0.799 | 0.361 | 6 / 31 / 28 |
+
+checks the plan asks for: controls are ordered (ceiling > beam blur > shuffled) on all 4, nothing is
+"everything distorting", no object has the ceiling under the beam blur. so no object needs a note for
+the bands being broken. things for discussion (not for retuning):
+- the random ramp (gamma 0.5 gray) beats the ceiling on 3 of 4 objects. a gamma is a better *display*
+  than linear gray when the dynamic range is big. the reader is honest about that, the bands are
+  relative to the plain display and the paper has to say so
+- noise only gets flux 0.87 everywhere: a frame of pure noise has 87% of its pixels brighter than 1 JND,
+  so flux visible alone cant tell noise from data. its the 3rd score for a reason, not the 1st
+- the conditional width goes from 0.008 (l1448) to 0.19 (ngc2403). twice the beam means something
+  different on a clean single dish map and on a noisy 61 channel sum. same rule, 4 answers

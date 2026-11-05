@@ -39,8 +39,9 @@ exoALMA 12CO 3-2 disk (J1615, in repo), THINGS HI galaxy (NGC 2403, in repo) (2n
       the render, out of the mask + noise), noise_edge_channels in the yaml. test_equivalence over every
       real fits in data/, test_io.py = 1 fake fits per case checked against astropy by hand (6 tests).
       35 tests. make test from a fresh clone passes
-- [ ] A4 sweep: v1.yaml 4 cubes 4 beams same grids. make sweep -> 4 scorecards. read every controls
-      table + bands line, dont retune, note weird ones for discussion. make figures draws 4 ladders
+- [x] A4 sweep (nov 4): v1.yaml 4 cubes, same grids, make sweep -> 4 scorecards in 4m54 (11 + 17 + 108 +
+      155 s). controls ordered on all 4, no broken bands. 4 object controls + bands table in
+      docs/metrics.md (results note). make figures draws 4 ladders, 4 galleries, 4 family plots
 - [ ] A5 envelope.py + make envelope: per numeric op per object the biggest grid value still >=
       conditional (and >= preserving), scores at that value. none = always distorting, top of grid =
       never costs (widen once). results/v1/envelope.json + envelope.md + fig_envelope.png

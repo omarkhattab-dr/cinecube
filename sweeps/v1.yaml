@@ -10,7 +10,8 @@ decoder: {mode: blind, recipe: jnd, jnd: 2.9}     # bujack 2026 bins, see docs/m
 vis_jnd: 2.3          # flux visible = 1 JND from the legends zero color
 mask_k: 3.0
 controls: {beam_fwhm_px: 2.0}   # l1448: 46 arcsec beam / 23 arcsec px
-beams: {l1448: 2.0, disk: 2.5}   # no BMAJ in those 2 headers. j1615 has one so its not here
+beams: {l1448: 2.0, disk: 2.5}   # no BMAJ in those 2 headers. j1615 + ngc2403 have one so theyre not here
+noise_edge_channels: 3
 operators:
   - name: log
   - name: asinh

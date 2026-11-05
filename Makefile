@@ -12,7 +12,7 @@ smoke:           ## 1 frame per operator on the 3 real cubes, ~1 min
 disk:            ## build the fake keplerian disk + truth
 	$(PY) -m cinecube.synth --out data/synthetic_disk --inc 45
 
-sweep: disk      ## full v1 sweep, l1448 + disk
+sweep: disk      ## full v1 sweep on all 4 cubes, ~5 min
 	$(PY) -m cinecube.sweep sweeps/v1.yaml
 
 index: disk      ## velocity-as-depth index on the disk
