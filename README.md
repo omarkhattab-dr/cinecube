@@ -1,14 +1,5 @@
 # cinecube
 
-how far is a cinematic render of an astro data cube from the actual data
-
-the whole idea: linear transfer function, no absorption, camera looking straight down the velocity
-axis -> the volume render IS the moment0 map. exact, not approx. so thats my zero point. every
-cinematic choice after that (TF, compositing, colormap, grade, orbit, dof, lighting, bloom etc,
-resampling) is an operator on top and this code scores what each one does to the data: how much
-you can read back, how much structure is left, how much of the emission is still visible.
-
-VIZA 701 fall 2026, group 5. omar + arash.
 
 ## setup (mac)
 
