@@ -31,10 +31,10 @@ clean:
 # overleaf project "Cinematic astro cubes" is a mirror of paper/. github is the source.
 # .overleaf/ is a clone of the overleaf project (git ignored). first time it asks for the
 # overleaf git token (overleaf -> account settings -> git integration -> generate token),
-# user = git, password = the token. mac keychain remembers it after that.
+# username is already in the url (git), it only asks for the password = the token. keychain remembers it
 # make overleaf       copy paper/ -> overleaf and push
 # make overleaf-pull  copy overleaf edits -> paper/ (then git commit here)
-OVERLEAF_URL = https://git.overleaf.com/6aebf0e9a3ce890e58d38c1b
+OVERLEAF_URL = https://git@git.overleaf.com/6aebf0e9a3ce890e58d38c1b
 .PHONY: overleaf overleaf-pull
 .overleaf:
 	git clone $(OVERLEAF_URL) .overleaf
