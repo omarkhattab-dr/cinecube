@@ -27,14 +27,24 @@ all: test sweep index figures
 clean:
 	rm -rf results/smoke results/v1 paper/figures/*.png
 
-# ---- overleaf (git bridge, the tamu account has it)
-# once: blank overleaf project, Menu -> Git -> copy the clone url, then
-#   git remote add overleaf https://git.overleaf.com/<project id>
-# then make overleaf pushes paper/ there, make overleaf-pull brings overleaf edits back
-# overleaf asks for the git token the first time (account settings -> git integration)
+# ---- overleaf (git bridge, tamu account has it)
+# overleaf project "Cinematic astro cubes" is a mirror of paper/. github is the source.
+# .overleaf/ is a clone of the overleaf project (git ignored). first time it asks for the
+# overleaf git token (overleaf -> account settings -> git integration -> generate token),
+# user = git, password = the token. mac keychain remembers it after that.
+# make overleaf       copy paper/ -> overleaf and push
+# make overleaf-pull  copy overleaf edits -> paper/ (then git commit here)
+OVERLEAF_URL = https://git.overleaf.com/6aebf0e9a3ce890e58d38c1b
 .PHONY: overleaf overleaf-pull
-overleaf:        ## push paper/ to overleaf
-	git subtree push --prefix=paper overleaf master
+.overleaf:
+	git clone $(OVERLEAF_URL) .overleaf
 
-overleaf-pull:   ## pull overleaf edits back into paper/
-	git subtree pull --prefix=paper overleaf master -m "pull from overleaf"
+overleaf: .overleaf   ## push paper/ to overleaf
+	cd .overleaf && git pull -q
+	rsync -a --delete --exclude .git --exclude '*.aux' --exclude '*.log' --exclude '*.bbl' --exclude '*.blg' --exclude '*.out' --exclude '*.pdf' --exclude '*.synctex.gz' paper/ .overleaf/
+	cd .overleaf && git add -A && (git diff --cached --quiet || git commit -q -m "sync from repo") && git push
+
+overleaf-pull: .overleaf   ## bring overleaf edits back into paper/
+	cd .overleaf && git pull -q
+	rsync -a --exclude .git .overleaf/ paper/
+	@echo "now: git status, then git commit the paper changes"

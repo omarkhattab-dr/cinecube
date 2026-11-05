@@ -18,3 +18,5 @@ paper/*.synctex.gz
 paper/*.fdb_latexmk
 paper/*.fls
 paper/main.pdf
+# local clone of the overleaf project, make overleaf makes it
+.overleaf/
