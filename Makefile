@@ -6,7 +6,7 @@ PY ?= python3
 test:            ## equivalence test + the rest
 	$(PY) -m pytest -q tests
 
-smoke:           ## 1 frame per operator on l1448 + alma disk, ~30 s
+smoke:           ## 1 frame per operator on the 3 real cubes, ~1 min
 	$(PY) -m cinecube.sweep sweeps/smoke.yaml
 
 disk:            ## build the fake keplerian disk + truth

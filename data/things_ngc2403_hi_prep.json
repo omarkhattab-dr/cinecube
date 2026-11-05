@@ -1,0 +1,43 @@
+{
+ "source_file": "NGC_2403_NA_CUBE_THINGS.FITS",
+ "dataset_doi": "things.www3.mpia.de (Walter et al. 2008)",
+ "file_id": "NGC_2403_NA_CUBE_THINGS.FITS",
+ "citation": "THINGS, Walter et al. 2008, AJ 136, 2563",
+ "shape_in": [
+  61,
+  2048,
+  2048
+ ],
+ "shape_out": [
+  61,
+  384,
+  384
+ ],
+ "unit_in": "Jy / beam",
+ "unit_out": "K",
+ "spectral_in": "VOPT-F2W",
+ "spectral_out": "VRAD km/s radio",
+ "restfrq_hz": 1420405750.0,
+ "channels": [
+  0,
+  61
+ ],
+ "pixels_y": [
+  256,
+  1792
+ ],
+ "pixels_x": [
+  256,
+  1792
+ ],
+ "block_mean": 4,
+ "pixel_arcsec_in": 1.0000000242,
+ "pixel_arcsec_out": 4.0000000968,
+ "beam_arcsec": 8.75088,
+ "beam_fwhm_px": 2.187719947057177,
+ "dv_kms": -5.157458046555519,
+ "v_kms": [
+  288.6711315886378,
+  -20.776433464944365
+ ]
+}

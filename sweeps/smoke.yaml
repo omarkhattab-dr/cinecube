@@ -1,7 +1,8 @@
-# smoke sweep - 1 frame per operator, l1448 by default, few seconds. --cube j1615 for the alma disk
+# smoke sweep - 1 frame per operator on the 3 real cubes, ~1 min. --cube <key> for just one
 cubes:
   l1448: data/l1448_13co.fits
   j1615: data/exoalma_j1615_12co.fits
+  ngc2403: data/things_ngc2403_hi.fits
 out: results/smoke
 decoder: {mode: blind, recipe: jnd, jnd: 2.9}     # bujack 2026 bins, see docs/metrics.md
 vis_jnd: 2.3          # flux visible = 1 JND from the legends zero color

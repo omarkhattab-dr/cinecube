@@ -133,3 +133,13 @@ way looser than l1448 (0.998 / 0.990). 2 reasons, both real:
   display, its the honest one (linear), and the reader measures against the data not the display.
 l1448 doesnt show this because its dynamic range is small (peak 7.4 K km/s, mask almost everything).
 this is exactly what the atlas (A6) is for.
+
+## the hi galaxy (A2, nov 4): the beam blur control bites hard on a noisy moment0
+
+ngc2403 (THINGS HI, 61x384x384, beam 2.19 px). controls: ceiling 0.995 / 0.799 / 1.00, beam blur
+0.807 / 0.361 / 0.99, shuffled 0.002. bands preserving >= 0.995, conditional >= 0.807. the moment0 sums
+all 61 channels and the line at any pixel only lives in 5-10 of them, so sigma_m0 = 116 K km/s against a
+peak of 3100 and the faint half of the mask is noise ordered. blurring to 2x the beam reorders those
+pixels -> rank corr 0.81. nothing to fix, thats what "no worse than twice the beam" means on a cube like
+this, but it makes the conditional band loose (log stretch 0.822 is conditional here, distorting on l1448).
+3 objects, 3 different band widths: l1448 0.998/0.990, j1615 0.970/0.926, ngc2403 0.995/0.807.

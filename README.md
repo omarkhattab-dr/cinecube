@@ -22,7 +22,7 @@ make test          # 12 tests, first one is the equivalence test (plain render =
 ## run
 
 ```bash
-make smoke         # 1 frame per operator on l1448 + the alma disk, ~30s -> results/smoke/
+make smoke         # 1 frame per operator on the 3 real cubes, ~1 min -> results/smoke/
 make disk          # fake keplerian disk + its 3d truth -> data/synthetic_disk*
 make sweep         # full v1 sweep, l1448 + disk (~40s) -> results/v1/<cube>/
 make index         # velocity-as-depth index on the disk -> results/v1/index_inc45.json
@@ -39,7 +39,7 @@ always be remade from scratch.
 ```
 cinecube/        the package: io, prep, render, operators, decode, metrics, sweep, synth, index, figures
 tests/           pytest, test_equivalence.py is the one that matters
-data/            l1448_13co.fits (2.3mb), exoalma_j1615_12co.fits (34mb, alma disk), disk gets built by make disk
+data/            l1448 (2.3mb), exoalma j1615 (34mb), things ngc2403 (36mb), fake disk gets built by make disk
 sweeps/          yaml sweeps, smoke.yaml (quick) and v1.yaml (the paper one)
 docs/metrics.md  the metrics spec, code has to match this
 results/         git ignored except results/frozen/ (freeze nov 25)

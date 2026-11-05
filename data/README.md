@@ -13,3 +13,11 @@ arcsec = 6 px from the header, 0.1 km/s channels, noise ~1.35 K. everything it d
 exoalma_j1615_12co_prep.json. cite exoALMA I + II if the cube shows up anywhere.
 
 synthetic_disk.fits + synthetic_disk_truth.npz are not committed, make disk builds them in a few sec.
+
+things_ngc2403_hi.fits (36 MB) - NGC 2403 in HI 21 cm, VLA, THINGS natural weighted cube (Walter et al 2008,
+AJ 136, 2563), from things.www3.mpia.de Data_files/NGC_2403_NA_CUBE_THINGS.FITS (the old www2.mpia-hd.mpg.de
+address redirects there). original 2048x2048x61 JY/BEAM, 1 arcsec px, FELO-HEL (optical velocity) axis, a
+stokes axis, beam 8.75x7.65 arcsec in the AIPS HISTORY line. cinecube.prep: 4x4 block mean (4 arcsec px),
+384x384 (25.6 arcmin, the whole galaxy, 256 would cut it), all 61 channels (5.16 km/s each), Jy/beam -> K
+through the beam, velocity -> km/s. beam 2.19 px from the header. noise ~2.9 K per channel. no NaN padding.
+things_ngc2403_hi_prep.json has the details.

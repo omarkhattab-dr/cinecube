@@ -42,12 +42,14 @@ def block_mean(a, f):
     return np.nanmean(a, axis=(2, 4))
 
 
-def prep(path, out, size=256, nchan=128, down=2, center=None, doi=None, file_id=None, cite=None, name=None):
+def prep(path, out, size=256, nchan=128, down=2, center=None, doi=None, file_id=None, cite=None, name=None, beam_arcsec=None):
     from spectral_cube import SpectralCube
     from astropy.io import fits
     import astropy.units as u
 
     sc = SpectralCube.read(path)
+    if hasattr(sc, "stokes_data"):          # 4d aips cube -> first stokes
+        sc = sc.stokes_data[list(sc.components)[0]] if hasattr(sc, "components") else sc
     ctype3_in = str(sc.header.get("CTYPE3"))
     rest = sc.header.get("RESTFRQ") or sc.header.get("RESTFREQ")
     if sc.spectral_axis.unit.is_equivalent(u.Hz):
@@ -63,6 +65,7 @@ def prep(path, out, size=256, nchan=128, down=2, center=None, doi=None, file_id=
     y0, y1 = max(0, cy - half), min(ny, cy + half)
     x0, x1 = max(0, cx - half), min(nx, cx + half)
     sub = sc[lo:hi, y0:y1, x0:x1]
+    sub.allow_huge_operations = True      # 1536x1536x61 is "huge" for spectral-cube, its fine
     unit_in = str(sub.unit)
     if "Jy" in unit_in:
         sub = sub.to(u.K)
@@ -80,6 +83,10 @@ def prep(path, out, size=256, nchan=128, down=2, center=None, doi=None, file_id=
         bpa = float(np.median([b.pa.to("deg").value for b in sub.beams]))
     except Exception:
         bmaj, bmin, bpa = sc.header.get("BMAJ"), sc.header.get("BMIN"), sc.header.get("BPA")
+    if not bmaj and beam_arcsec:
+        # no beam anywhere in the file (things), take the one from the survey paper
+        bmaj = bmin = beam_arcsec / 3600.0
+        bpa = 0.0
 
     h0 = sc.header
     h = fits.Header()
@@ -103,7 +110,9 @@ def prep(path, out, size=256, nchan=128, down=2, center=None, doi=None, file_id=
     h["HISTORY"] = "channels %d:%d, pixels y %d:%d x %d:%d, block mean %dx%d" % (lo, hi, y0, y1, x0, x1, down, down)
     h["HISTORY"] = "unit in %s -> K via the beam (spectral-cube), FREQ -> VRAD km/s radio" % unit_in
     if doi:
-        h["HISTORY"] = "harvard dataverse doi:%s file %s" % (doi, file_id)
+        h["HISTORY"] = "source doi:%s file %s" % (doi, file_id)
+    if beam_arcsec and not sc.header.get("BMAJ"):
+        h["HISTORY"] = "beam %.2f arcsec from the survey paper, the file had none" % beam_arcsec
     fits.PrimaryHDU(T, header=h).writeto(out, overwrite=True)
 
     prov = dict(source_file=os.path.basename(path), dataset_doi=doi, file_id=file_id, citation=cite,
@@ -127,8 +136,9 @@ def main(argv=None):
     ap.add_argument("--down", type=int, default=2, help="block mean factor")
     ap.add_argument("--center", type=int, nargs=2, default=None, help="y x pixel of the object in the input, default image centre")
     ap.add_argument("--doi"); ap.add_argument("--file-id"); ap.add_argument("--cite"); ap.add_argument("--name")
+    ap.add_argument("--beam-arcsec", type=float, default=None, help="beam fwhm if the file has none (things: from the survey table)")
     a = ap.parse_args(argv)
-    prep(a.path, a.out, a.size, a.nchan, a.down, tuple(a.center) if a.center else None, a.doi, a.file_id, a.cite, a.name)
+    prep(a.path, a.out, a.size, a.nchan, a.down, tuple(a.center) if a.center else None, a.doi, a.file_id, a.cite, a.name, a.beam_arcsec)
 
 
 if __name__ == "__main__":

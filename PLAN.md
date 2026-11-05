@@ -5,7 +5,7 @@ data cubes, from the proof renderer to blender. VIZA 701 fall 2026, dr kumar. om
 full version with the timeline is in the claude doc, this is the short one for the repo.
 2 tracks, 1 reader. track A = python (exact, the proof, cheap numbers). track B = openvdb -> blender
 cycles (real production knobs). same decoder + metrics score both. 4 objects: l1448, fake disk,
-exoALMA 12CO 3-2 disk (J1615, in repo), THINGS HI galaxy (2nd COMPLETE cloud if THINGS is down).
+exoALMA 12CO 3-2 disk (J1615, in repo), THINGS HI galaxy (NGC 2403, in repo) (2nd COMPLETE cloud if THINGS is down).
 
 ## the 4 things nobody does
 
@@ -27,9 +27,13 @@ exoALMA 12CO 3-2 disk (J1615, in repo), THINGS HI galaxy (2nd COMPLETE cloud if 
       the middle 256x256x128, Jy/beam->K, FREQ->km/s radio, beam 6 px from the header, prep json +
       HISTORY say what it did. data/exoalma_j1615_12co.fits 34 MB. equivalence + test_io pass, smoke
       controls ceiling 0.970 > beam 0.926 > shuffled 0. note in docs/metrics.md about the dynamic range
-- [ ] A2 THINGS galaxy: natural weighted cube of an inclined spiral, HI rest 1420.405751 MHz, velo axis
-      may be FELO/VELO, 2x downsample + crop, Jy/beam->K at 21cm, same checks. 2 days unreachable ->
-      fallback 2nd COMPLETE cloud (perseus 12CO)
+- [x] A2 THINGS galaxy (nov 4): NGC 2403 natural weighted (1.04 GB, things moved to things.www3.mpia.de,
+      the old url redirects). FELO-HEL optical velocity axis + stokes axis + beam in the AIPS HISTORY,
+      spectral-cube reads all 3. 4x block mean to 4 arcsec px and 384x384 (not 256: the galaxy is 22
+      arcmin, 256 cut it and 6x would put the 8.75 arcsec beam under 2 px). 61 channels, Jy/beam->K.
+      data/things_ngc2403_hi.fits 36 MB. tests pass (30), smoke controls ceiling 0.995 > beam 0.807 >
+      shuffled 0.002. the beam blur costs a lot here because the unmasked moment0 is noisy (116 K km/s
+      vs 3100 peak), so the conditional band is loose on this object. in docs/metrics.md
 - [ ] A3 io.py hardening: FREQ/VRAD/VELO axes, K or Jy/beam, BMAJ or yaml beam, NaN padding (0 for the
       render, out of the mask), edge channel noise. test_equivalence over every fits in data/,
       test_io.py with a tiny fake fits. data/README 1 line per object. make test passes on 4 cubes

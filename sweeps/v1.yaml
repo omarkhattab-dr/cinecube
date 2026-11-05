@@ -4,6 +4,7 @@ cubes:
   l1448: data/l1448_13co.fits
   disk: data/synthetic_disk.fits
   j1615: data/exoalma_j1615_12co.fits    # exoALMA 12CO 3-2 disk, beam from the header (6 px)
+  ngc2403: data/things_ngc2403_hi.fits   # THINGS HI galaxy, beam from the header (2.2 px)
 out: results/v1
 decoder: {mode: blind, recipe: jnd, jnd: 2.9}     # bujack 2026 bins, see docs/metrics.md
 vis_jnd: 2.3          # flux visible = 1 JND from the legends zero color
