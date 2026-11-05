@@ -1,4 +1,5 @@
-# sweep v1 - every operator at default + a short grid per family
+# sweep v1 - every operator at default + a grid per family. grids widened once on nov 5 (A5) after
+# the first envelope pass: orbit fine near 0, dof/bloom/vignette/grade/bin/resample go further out
 # run: make sweep  (or python -m cinecube.sweep sweeps/v1.yaml)
 cubes:
   l1448: data/l1448_13co.fits
@@ -23,20 +24,22 @@ operators:
   - name: colormap
     grid: {cmap: [inferno, viridis, gray, jet]}
   - name: grade_teal_orange
-    grid: {strength: [0.2, 0.4, 0.6]}
+    grid: {strength: [0.2, 0.4, 0.6, 0.8, 1.0]}
   - name: grade_nonmonotone
+    grid: {mix: [0.25, 0.5, 0.75, 1.0]}
   - name: orbit
-    grid: {theta: [0, 10, 20, 30, 45, 60, 90], aspect: [1, 2, 3]}
+    grid: {theta: [0, 2, 4, 6, 8, 10, 15, 20, 30, 45, 60, 90], aspect: [1, 2, 3]}   # fine near 0, thats where the envelope is
   - name: dof
-    grid: {sigma: [0.5, 1, 2, 3, 4]}
+    grid: {sigma: [0.5, 1, 2, 3, 4, 6, 8]}
   - name: shading
     grid: {strength: [0.2, 0.35, 0.6, 0.7]}
   - name: bloom
-    grid: {gain: [0.5, 1.0, 1.6]}
+    grid: {gain: [0.5, 1.0, 1.6, 2.5, 4.0]}
   - name: vignette
-    grid: {strength: [0.25, 0.5]}
+    grid: {strength: [0.25, 0.5, 0.75, 1.0]}
   - name: grain
+    grid: {sigma: [0.01, 0.03, 0.06, 0.1]}
   - name: spectral_bin
-    grid: {factor: [2, 4]}
+    grid: {factor: [2, 4, 8]}
   - name: sky_resample
-    grid: {factor: [2, 4], method: [nearest, bilinear]}
+    grid: {factor: [2, 4, 8], method: [nearest, bilinear]}

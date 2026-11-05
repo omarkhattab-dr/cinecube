@@ -7,7 +7,8 @@ for each cube folder with a scorecard.json:
     fig_ladder_<cube>.png     operators ranked by data recovered, with structure + flux
     fig_families_<cube>.png   score vs parameter for every family that got swept, bands shaded
     fig_gallery_<cube>.png    frames in a grid with their 3 numbers
-plus fig_index.png if results/<v>/index*.json is there, and fig_equivalence.png from l1448.
+plus fig_index.png if results/<v>/index*.json is there, fig_envelope.png if envelope.json is there
+(make envelope), and fig_equivalence.png from l1448.
 print style: white bg, 300 dpi
 """
 import argparse
@@ -156,6 +157,56 @@ def equivalence(cube_path, out):
     fig.tight_layout(); fig.savefig(out, dpi=300, bbox_inches="tight"); plt.close(fig)
 
 
+def envelope_figure(path, out):
+    """operators on y, 1 marker per object at its envelope position along its own grid (0 = smallest
+    grid value, 1 = biggest). filled = stay conditional, hollow = stay preserving. x at the left edge =
+    none (always out), triangle at the right edge = top of grid"""
+    results = json.load(open(path))
+    objs = [r["cube"] for r in results]
+    marks = ["o", "s", "D", "^", "v", "P"]
+    # one row per (operator, fixed) that has a numeric knob, same order for every object
+    keys = []
+    for r in results:
+        for e in r["entries"]:
+            if e.get("param") and not e.get("categorical"):
+                k = (e["operator"], tuple(sorted((e.get("fixed") or {}).items())))
+                if k not in keys:
+                    keys.append(k)
+    n = len(keys)
+    fig, ax = plt.subplots(figsize=(7.2, 0.3 * n + 1.4))
+    for i, (op, fixed) in enumerate(keys):
+        y = n - 1 - i
+        ax.axhline(y, color="#e5e7eb", lw=0.8, zorder=0)
+        for j, r in enumerate(results):
+            e = next((e for e in r["entries"] if e["operator"] == op and tuple(sorted((e.get("fixed") or {}).items())) == fixed), None)
+            if e is None:
+                continue
+            grid = e["grid"]
+            for band_key, filled in (("conditional", True), ("preserving", False)):
+                b = e[band_key]
+                if b["status"] == "none":
+                    x, m = -0.04, "x"
+                elif b["status"] == "top":
+                    x, m = 1.04, ">"
+                else:
+                    x, m = grid.index(b["value"]) / max(len(grid) - 1, 1), marks[j % len(marks)]
+                off = (j - (len(results) - 1) / 2) * 0.16
+                ax.plot(x, y + off, marker=m, ms=5 if m in "x>" else 5.5, ls="none", color=plt.cm.tab10(j),
+                        mfc=plt.cm.tab10(j) if filled else "white", mew=1.2, zorder=3)
+        lab = op + (" (" + ", ".join("%s %s" % kv for kv in fixed) + ")" if fixed else "") + "  [%s]" % e["param"]
+        ax.text(-0.08, y, lab, ha="right", va="center", fontsize=7.5, color=INK)
+    for j, o in enumerate(objs):
+        ax.plot([], [], marker=marks[j % len(marks)], ls="none", color=plt.cm.tab10(j), label=o)
+    ax.plot([], [], marker="o", ls="none", color=MUTED, mfc="white", label="hollow = stay preserving")
+    ax.plot([], [], marker="x", ls="none", color=MUTED, label="x = none, > = top of grid")
+    ax.legend(fontsize=6.5, frameon=False, loc="upper center", bbox_to_anchor=(0.5, -0.02), ncol=3)
+    ax.set_xlim(-0.1, 1.1); ax.set_ylim(-0.8, n - 0.2); ax.set_yticks([])
+    ax.set_xticks([0, 0.5, 1]); ax.set_xticklabels(["smallest grid value", "", "biggest"], fontsize=7)
+    ax.spines["left"].set_visible(False)
+    ax.set_title("envelope: how far each knob goes before it leaves the band", fontsize=9)
+    fig.savefig(out, dpi=300, bbox_inches="tight"); plt.close(fig)
+
+
 def main(argv=None):
     ap = argparse.ArgumentParser(description="build the figures from results")
     ap.add_argument("results", nargs="?", default="results/v1")
@@ -170,6 +221,9 @@ def main(argv=None):
         if families(card, os.path.join(a.out, "fig_families_%s.png" % key)):
             made.append("fig_families_%s.png" % key)
         gallery(card, os.path.join(os.path.dirname(card_path), "frames"), os.path.join(a.out, "fig_gallery_%s.png" % key)); made.append("fig_gallery_%s.png" % key)
+    env = os.path.join(a.results, "envelope.json")
+    if os.path.exists(env):
+        envelope_figure(env, os.path.join(a.out, "fig_envelope.png")); made.append("fig_envelope.png")
     idx = sorted(glob.glob(os.path.join(a.results, "index*.json")))
     if idx:
         index_figure(idx, os.path.join(a.out, "fig_index.png")); made.append("fig_index.png")

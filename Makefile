@@ -1,7 +1,7 @@
 # one command remakes everything. run from repo root with the venv on
 PY ?= python3
 
-.PHONY: test smoke disk sweep index figures all clean
+.PHONY: test smoke disk sweep index envelope figures all clean
 
 test:            ## equivalence test + the rest
 	$(PY) -m pytest -q tests
@@ -19,10 +19,13 @@ index: disk      ## velocity-as-depth index on the disk
 	mkdir -p results/v1
 	$(PY) -m cinecube.index --disk data/synthetic_disk.fits --truth data/synthetic_disk_truth.npz --out results/v1/index_inc45.json
 
+envelope:        ## how far each knob goes before it leaves the band, from the sweep json
+	$(PY) -m cinecube.envelope results/v1
+
 figures:         ## all figures into paper/figures from results/v1
 	$(PY) -m cinecube.figures results/v1 paper/figures
 
-all: test sweep index figures
+all: test sweep index envelope figures
 
 clean:
 	rm -rf results/smoke results/v1 paper/figures/*.png
