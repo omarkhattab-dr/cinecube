@@ -64,18 +64,4 @@ PLAN.md          scope, who does what, weeks, fallbacks
 L1448 13CO 1-0, FCRAO COMPLETE survey, from the astropy-data repo (github.com/astropy/astropy-data).
 105x105 px, 53 channels, 0.066 km/s per channel.
 
-## github + overleaf
 
-- github: repo is github.com/omarkhattab-dr/cinecube (private). `bash setup_mac.sh` does venv + tests +
-  push if gh is logged in (`brew install gh && gh auth login` once). add arash with
-  `ARASH=<his github username> bash setup_mac.sh`. every push runs the tests on actions.
-- overleaf: project "Cinematic astro cubes" (overleaf.com/project/6aebf0e9a3ce890e58d38c1b) is a mirror
-  of paper/. github is the source, overleaf is just the editor.
-  - `make overleaf` copies paper/ (main.tex, sections, figures, refs.bib) into a local clone `.overleaf/`
-    and pushes. first time it clones and asks for the overleaf git token (overleaf -> account settings
-    -> git integration -> generate token, user = git, password = token). keychain remembers it.
-  - `make overleaf-pull` brings edits made on overleaf back into paper/, then git commit here.
-  - do `make overleaf-pull` before `make overleaf` if arash edited on overleaf, otherwise his edits get
-    overwritten.
-  - backup if git acts up: New Project -> Upload Project -> cinecube_paper_overleaf.zip, compiler
-    pdflatex, main doc main.tex.
