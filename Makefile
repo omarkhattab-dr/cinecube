@@ -28,23 +28,27 @@ clean:
 	rm -rf results/smoke results/v1 paper/figures/*.png
 
 # ---- overleaf (git bridge, tamu account has it)
-# overleaf project "Cinematic astro cubes" is a mirror of paper/. github is the source.
+# overleaf project 6aebf9efb11a4b10b0a24b54 is a mirror of paper/. github is the source.
+# (git push of the figures 500s on overleafs side sometimes, if so upload the pngs by hand)
 # .overleaf/ is a clone of the overleaf project (git ignored). first time it asks for the
 # overleaf git token (overleaf -> account settings -> git integration -> generate token),
 # username is already in the url (git), it only asks for the password = the token. keychain remembers it
 # make overleaf       copy paper/ -> overleaf and push
 # make overleaf-pull  copy overleaf edits -> paper/ (then git commit here)
-OVERLEAF_URL = https://git@git.overleaf.com/6aebf0e9a3ce890e58d38c1b
-.PHONY: overleaf overleaf-pull
+OVERLEAF_URL = https://git@git.overleaf.com/6aebf9efb11a4b10b0a24b54
+.PHONY: overleaf overleaf-pull overleaf-check
 .overleaf:
 	git clone $(OVERLEAF_URL) .overleaf
 
-overleaf: .overleaf   ## push paper/ to overleaf
+overleaf-check: .overleaf
+	@cd .overleaf && [ "$$(git remote get-url origin)" = "$(OVERLEAF_URL)" ] || (echo ".overleaf is a clone of an old project, do: rm -rf .overleaf  then rerun" && exit 1)
+
+overleaf: overleaf-check   ## push paper/ to overleaf
 	cd .overleaf && git pull -q
 	rsync -a --delete --exclude .git --exclude '*.aux' --exclude '*.log' --exclude '*.bbl' --exclude '*.blg' --exclude '*.out' --exclude '*.pdf' --exclude '*.synctex.gz' paper/ .overleaf/
 	cd .overleaf && git add -A && (git diff --cached --quiet || git commit -q -m "sync from repo") && git push
 
-overleaf-pull: .overleaf   ## bring overleaf edits back into paper/
+overleaf-pull: overleaf-check   ## bring overleaf edits back into paper/
 	cd .overleaf && git pull -q
 	rsync -a --exclude .git .overleaf/ paper/
 	@echo "now: git status, then git commit the paper changes"
