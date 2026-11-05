@@ -82,7 +82,8 @@ def load_cube(path, name=None, n_edge=3, beam_fwhm_px=None):
         sc = sc.to(u.K)
         meta["converted"] = "Jy/beam -> K via the beam (spectral-cube .to(K))"
     elif not sc.unit.is_equivalent(u.K):
-        meta["converted"] = "unit %s left as is, treated as K" % sc.unit
+        meta["converted"] = ("no BUNIT in the header, treated as K" if str(sc.unit).strip() in ("", "dimensionless")
+                             else "unit %s left as is, treated as K" % sc.unit)
 
     raw = sc.unmasked_data[:].value.astype(np.float64)
     valid = np.isfinite(raw).any(axis=0)
