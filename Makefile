@@ -9,15 +9,20 @@ test:            ## equivalence test + the rest
 smoke:           ## 1 frame per operator on the 3 real cubes, ~1 min
 	$(PY) -m cinecube.sweep sweeps/smoke.yaml
 
-disk:            ## build the fake keplerian disk + truth
+disk:            ## build the fake keplerian disk + truth, 45 deg (the sweep one) + 30 and 60 for the index
 	$(PY) -m cinecube.synth --out data/synthetic_disk --inc 45
+	$(PY) -m cinecube.synth --out data/synthetic_disk_inc30 --inc 30
+	$(PY) -m cinecube.synth --out data/synthetic_disk_inc60 --inc 60
 
 sweep: disk      ## full v1 sweep on all 4 cubes, ~5 min
 	$(PY) -m cinecube.sweep sweeps/v1.yaml
 
-index: disk      ## velocity-as-depth index on the disk
+index: disk      ## velocity-as-depth index at 3 inclinations + the safe camera path at 45
 	mkdir -p results/v1
 	$(PY) -m cinecube.index --disk data/synthetic_disk.fits --truth data/synthetic_disk_truth.npz --out results/v1/index_inc45.json
+	$(PY) -m cinecube.index --disk data/synthetic_disk_inc30.fits --truth data/synthetic_disk_inc30_truth.npz --out results/v1/index_inc30.json
+	$(PY) -m cinecube.index --disk data/synthetic_disk_inc60.fits --truth data/synthetic_disk_inc60_truth.npz --out results/v1/index_inc60.json
+	$(PY) -m cinecube.index --path results/v1/index_inc45.json --frames 240 --out results/v1/safe_path_inc45.json
 
 envelope:        ## how far each knob goes before it leaves the band, from the sweep json
 	$(PY) -m cinecube.envelope results/v1

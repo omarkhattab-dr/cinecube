@@ -7,7 +7,8 @@ for each cube folder with a scorecard.json:
     fig_ladder_<cube>.png     operators ranked by data recovered, with structure + flux
     fig_families_<cube>.png   score vs parameter for every family that got swept, bands shaded
     fig_gallery_<cube>.png    frames in a grid with their 3 numbers
-plus fig_index.png if results/<v>/index*.json is there, fig_envelope.png if envelope.json is there
+plus fig_gallery_atlas.png + fig_atlas.png (+ results/<v>/atlas.json) when there are 2+ cubes,
+fig_index.png if results/<v>/index*.json is there, fig_envelope.png if envelope.json is there
 (make envelope), and fig_equivalence.png from l1448.
 print style: white bg, 300 dpi
 """
@@ -33,7 +34,8 @@ def band_color(b):
 
 
 def _defaults_rows(card):
-    """1 row per operator, the one at the registry defaults if it was swept, else the middle of its grid"""
+    """1 row per operator: the swept row closest to the registry defaults (exact if it was swept,
+    else the nearest numeric value, so the same setting shows on every object)"""
     from .operators import OPERATORS
     groups = {}
     for r in card["rows"]:
@@ -42,8 +44,17 @@ def _defaults_rows(card):
     rows = []
     for name, grp in groups.items():
         defaults = OPERATORS.get(name, {}).get("params", {})
-        hit = [r for r in grp if all(r["params"].get(k) == v for k, v in defaults.items())]
-        rows.append(hit[0] if hit else grp[len(grp) // 2])
+
+        def dist(r):
+            d = 0.0
+            for k, v in defaults.items():
+                x = r["params"].get(k)
+                if isinstance(v, (int, float)) and isinstance(x, (int, float)):
+                    d += abs(x - v) / (abs(v) + 1e-9)
+                elif x != v:
+                    d += 1.0
+            return d
+        rows.append(min(grp, key=dist))
     return rows
 
 
@@ -130,14 +141,41 @@ def gallery(card, frames_dir, out, max_n=20):
 
 
 def index_figure(paths, out):
-    fig, axes = plt.subplots(1, len(paths), figsize=(3.3 * len(paths), 2.8), squeeze=False)
+    """index vs orbit angle per inclination, 3 stretches. the safe envelope (index under the 2x beam
+    threshold) is shaded and the safe angle per stretch is marked, in a zoom inset because it all
+    happens in the first 5 degrees"""
+    from mpl_toolkits.axes_grid1.inset_locator import inset_axes
+    fig, axes = plt.subplots(1, len(paths), figsize=(3.4 * len(paths), 3.0), squeeze=False)
+    cols = [INK, "#4b6cb7", "#e9a23b"]
     for ax, p in zip(axes.ravel(), paths):
         d = json.load(open(p))
-        for s in sorted(set(r["stretch"] for r in d["rows"])):
+        thr = d.get("thresholds", {}).get("beam")
+        safe = d.get("safe_angle", {}).get("beam", {})
+        stretches = sorted(set(r["stretch"] for r in d["rows"]))
+        for k, s in enumerate(stretches):
             sub = sorted([r for r in d["rows"] if r["stretch"] == s], key=lambda r: r["theta"])
-            ax.plot([r["theta"] for r in sub], [r["one_minus_ssim"] for r in sub], "-o", ms=3, label="stretch %gx" % s)
-        ax.set_xlabel("orbit angle (deg)"); ax.set_ylabel("index (1 - SSIM)"); ax.set_ylim(0, 1)
-        ax.set_title("inclination %s deg" % d.get("inc_deg"), fontsize=9); ax.legend(fontsize=7, frameon=False)
+            ax.plot([r["theta"] for r in sub], [r["one_minus_ssim"] for r in sub], "-o", ms=2.5, lw=1, color=cols[k % 3], label="stretch %gx" % s)
+        if thr is not None:
+            ax.axhspan(0, thr, color=GOOD, alpha=0.18, lw=0)
+            ax.axhline(thr, color=GOOD, lw=0.8, ls="--")
+        ax.set_xlabel("orbit angle (deg)", fontsize=8); ax.set_ylabel("index (1 - SSIM)", fontsize=8); ax.set_ylim(0, 0.64); ax.set_xlim(0, 92)
+        ax.tick_params(labelsize=7)
+        ax.set_title("inclination %s deg" % d.get("inc_deg"), fontsize=9); ax.legend(fontsize=6.5, frameon=False, loc="lower right")
+        # the zoom: 0 to 6 deg, where the envelope is
+        ins = inset_axes(ax, width="46%", height="46%", loc="upper left", borderpad=1.2)
+        for k, s in enumerate(stretches):
+            sub = sorted([r for r in d["rows"] if r["stretch"] == s and r["theta"] <= 6], key=lambda r: r["theta"])
+            ins.plot([r["theta"] for r in sub], [r["one_minus_ssim"] for r in sub], "-o", ms=2.5, lw=1, color=cols[k % 3])
+            sa = safe.get(str(int(s)))
+            if sa and sa.get("status") == "value":
+                ins.axvline(sa["theta"], color=cols[k % 3], lw=0.8, ls=":")
+                ins.text(sa["theta"], 0.0305, "%.1f" % sa["theta"], fontsize=5.5, color=cols[k % 3], ha="center", va="bottom")
+        if thr is not None:
+            ins.axhspan(0, thr, color=GOOD, alpha=0.18, lw=0)
+            ins.axhline(thr, color=GOOD, lw=0.8, ls="--")
+            ins.text(6.0, thr, " 2x beam", fontsize=5.5, color=GOOD, va="bottom", ha="right")
+        ins.set_xlim(0, 6.2); ins.set_ylim(0, 0.036); ins.tick_params(labelsize=5.5, length=2)
+        ins.set_title("safe angle per stretch", fontsize=6, pad=2)
     fig.tight_layout(); fig.savefig(out, dpi=300); plt.close(fig)
 
 
@@ -207,6 +245,92 @@ def envelope_figure(path, out):
     fig.savefig(out, dpi=300, bbox_inches="tight"); plt.close(fig)
 
 
+# ---------------------------------------------------------------- the atlas (A6)
+ATLAS_OPS = ["reference", "log", "absorb", "colormap", "orbit", "shading"]   # same 6 on every object
+
+
+def _frame_png(card_path, row):
+    pngs = glob.glob(os.path.join(os.path.dirname(card_path), "frames", "%03d_*.png" % row["index"]))
+    return pngs[0] if pngs else None
+
+
+def gallery_atlas(cards, out):
+    """one row per object, the same 6 operators at their defaults, 3 scores under each"""
+    fig, axes = plt.subplots(len(cards), len(ATLAS_OPS), figsize=(2.0 * len(ATLAS_OPS), 2.25 * len(cards)), squeeze=False)
+    for i, (card_path, card) in enumerate(cards):
+        rows = {r["name"]: r for r in _defaults_rows(card)}
+        rows["reference"] = card["rows"][0]
+        for j, op in enumerate(ATLAS_OPS):
+            ax = axes[i, j]; ax.axis("off")
+            r = rows.get(op)
+            if r is None:
+                continue
+            png = _frame_png(card_path, r)
+            if png:
+                ax.imshow(np.asarray(Image.open(png)))
+            if i == 0:
+                ax.set_title(r["label"] if op != "reference" else "plain render", fontsize=7.5, pad=3)
+            ax.text(0.5, -0.05, "%.3f | %.2f | %d%%" % (r["data_recovered"], r["structure_kept"], round(100 * r["flux_visible"])),
+                    transform=ax.transAxes, ha="center", va="top", fontsize=7, color=band_color(r["band"]), fontweight="bold")
+            if j == 0:
+                ax.text(-0.06, 0.5, card["cube"], transform=ax.transAxes, rotation=90, ha="right", va="center", fontsize=9, color=INK)
+    fig.suptitle("under each: data recovered | structure kept | flux visible, colored by band", fontsize=8, color=MUTED, y=0.995)
+    fig.tight_layout(); fig.savefig(out, dpi=300); plt.close(fig)
+
+
+def atlas(cards, out, json_out):
+    """4 ladders side by side (defaults row per operator) + the spearman matrix between the rankings.
+    writes atlas.json with the matrix, the mean pairwise rank corr and the ops whose band flips"""
+    from scipy.stats import spearmanr
+    objs = [c["cube"] for _, c in cards]
+    rows = {c["cube"]: {r["name"]: r for r in _defaults_rows(c)} for _, c in cards}
+    ops = [n for n in rows[objs[0]] if all(n in rows[o] for o in objs)]
+    vec = {o: [rows[o][n]["data_recovered"] for n in ops] for o in objs}
+    n = len(objs)
+    mat = np.ones((n, n))
+    pairs = []
+    for i in range(n):
+        for j in range(n):
+            if i != j:
+                mat[i, j] = spearmanr(vec[objs[i]], vec[objs[j]]).correlation
+            if i < j:
+                pairs.append(mat[i, j])
+    mean_rho = float(np.mean(pairs))
+    bands = {nme: [rows[o][nme]["band"] for o in objs] for nme in ops}
+    flips = {nme: b for nme, b in bands.items() if len(set(b)) > 1}
+    stable = [nme for nme, b in bands.items() if len(set(b)) == 1]
+
+    fig = plt.figure(figsize=(2.3 * n + 3.4, 0.27 * len(ops) + 1.6))
+    gs = fig.add_gridspec(1, n + 1, width_ratios=[1] * n + [1.35], wspace=0.08)
+    for k, o in enumerate(objs):
+        ax = fig.add_subplot(gs[0, k])
+        order = sorted(ops, key=lambda nme: -rows[o][nme]["data_recovered"])
+        ax.set_xlim(0, 1.25); ax.set_ylim(-0.8, len(ops)); ax.axis("off")
+        b = [c for _, c in cards if c["cube"] == o][0]["bands"]
+        ax.set_title("%s\nbands %.3f / %.3f" % (o, b["preserving_min"], b["conditional_min"]), fontsize=7.5)
+        for i, nme in enumerate(order):
+            r = rows[o][nme]; y = len(ops) - 1 - i
+            ax.add_patch(Rectangle((0, y - 0.32), 1.0, 0.64, color="#e5e7eb"))
+            ax.add_patch(Rectangle((0, y - 0.32), max(min(r["data_recovered"], 1), 0), 0.64, color=band_color(r["band"])))
+            ax.text(0.03, y, nme, va="center", fontsize=6.3, color="white" if r["data_recovered"] > 0.45 else INK)
+            ax.text(1.03, y, "%.3f" % r["data_recovered"], va="center", fontsize=6.3, color=INK)
+    ax = fig.add_subplot(gs[0, n])
+    im = ax.imshow(mat, vmin=0, vmax=1, cmap="Blues")
+    ax.set_xticks(range(n)); ax.set_yticks(range(n)); ax.set_xticklabels(objs, fontsize=7, rotation=45, ha="right"); ax.set_yticklabels(objs, fontsize=7)
+    for i in range(n):
+        for j in range(n):
+            ax.text(j, i, "%.2f" % mat[i, j], ha="center", va="center", fontsize=7, color="white" if mat[i, j] > 0.6 else INK)
+    ax.set_title("spearman between the 4 rankings\nmean over the %d pairs: %.2f" % (len(pairs), mean_rho), fontsize=7.5)
+    ax.tick_params(length=0)
+    fig.suptitle("the atlas: %d operators at their defaults, ranked by data recovered on each object" % len(ops), fontsize=9, y=1.01)
+    fig.savefig(out, dpi=300, bbox_inches="tight"); plt.close(fig)
+
+    json.dump(dict(objects=objs, operators=ops, data_recovered=vec, spearman_matrix=mat.tolist(), mean_pairwise_spearman=mean_rho,
+                   pairwise=[(objs[i], objs[j], float(mat[i, j])) for i in range(n) for j in range(i + 1, n)],
+                   bands=bands, band_flips=flips, band_stable=stable), open(json_out, "w"), indent=1)
+    return mean_rho, flips
+
+
 def main(argv=None):
     ap = argparse.ArgumentParser(description="build the figures from results")
     ap.add_argument("results", nargs="?", default="results/v1")
@@ -221,6 +345,11 @@ def main(argv=None):
         if families(card, os.path.join(a.out, "fig_families_%s.png" % key)):
             made.append("fig_families_%s.png" % key)
         gallery(card, os.path.join(os.path.dirname(card_path), "frames"), os.path.join(a.out, "fig_gallery_%s.png" % key)); made.append("fig_gallery_%s.png" % key)
+    cards = [(p, json.load(open(p))) for p in sorted(glob.glob(os.path.join(a.results, "*", "scorecard.json")))]
+    if len(cards) >= 2:
+        gallery_atlas(cards, os.path.join(a.out, "fig_gallery_atlas.png")); made.append("fig_gallery_atlas.png")
+        rho, flips = atlas(cards, os.path.join(a.out, "fig_atlas.png"), os.path.join(a.results, "atlas.json")); made.append("fig_atlas.png")
+        print("atlas: mean pairwise spearman %.3f, bands flip on %s" % (rho, ", ".join(flips) or "nothing"))
     env = os.path.join(a.results, "envelope.json")
     if os.path.exists(env):
         envelope_figure(env, os.path.join(a.out, "fig_envelope.png")); made.append("fig_envelope.png")

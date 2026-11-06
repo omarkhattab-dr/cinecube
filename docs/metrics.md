@@ -229,3 +229,54 @@ what it says:
   cinematic cost, its free compression
 - "top of grid" survivors after one widening (bloom, vignette, grade, grain, bin): the rule says widen
   once, done. theyre reported as "never costs anything at the tested range", not widened again
+
+## results note (A6, nov 5): the atlas, is the ranking universal
+
+make figures -> fig_gallery_atlas.png, fig_atlas.png, results/v1/atlas.json. 16 operators at their
+registry defaults (nearest swept value), ranked by data recovered on each object, spearman between
+the 4 rankings:
+
+| | disk | j1615 | l1448 | ngc2403 |
+| --- | --- | --- | --- | --- |
+| disk | 1 | 0.24 | 0.79 | 0.90 |
+| j1615 | 0.24 | 1 | 0.36 | 0.47 |
+| l1448 | 0.79 | 0.36 | 1 | 0.83 |
+| ngc2403 | 0.90 | 0.47 | 0.83 | 1 |
+
+mean of the 6 pairs: **0.60**. the sentence: the ranking is only moderately universal. 3 objects agree
+(0.79 to 0.90), the alma disk j1615 doesnt (0.24 to 0.47). same band on all 4 objects: threshold, mip,
+colormap, orbit, dof, shading (the camera / lighting / compositing knobs, always the same answer).
+band flips between objects: log, asinh, absorb, both grades, bloom, vignette, grain, spectral_bin,
+sky_resample, mostly conditional everywhere except distorting on l1448 (tightest band) or the other
+way round on j1615. why j1615 is the odd one: its mask is mostly faint pixels in the bottom gray bins,
+so anything that stretches the faint end (a grade, a gamma, even a non monotone grade) reads better
+than the plain display, and things that are free elsewhere (teal orange grade: 0.743, last place)
+cost there because the grade pushes the faint disk into teal and the gray legend cant read it.
+
+## results note (A7, nov 5): the honest orbit
+
+make index -> index_inc30/45/60.json + safe_path_inc45.json, fig_index.png. fine grid near 0
+(0 2 4 6 8 10 15 20 30 45 60 90), 3 stretches, 3 inclinations.
+
+the threshold: the plan said "1 minus the disks structure conditional band". thats 1 - 0.372 = 0.628
+and the index never gets above 0.42, so every angle would be safe (status "all" at 90 deg on all 3
+inclinations, its in the json as safe_angle.band). the reason: that band comes from the reader + 2x
+beam blur on a smooth disk through 26 gray levels, a different currency from the index which has no
+decoder in it. so the headline threshold is the same rule in the indexs own currency: 1 - ssim between
+the true density picture and the same picture blurred to 2x the beam = 0.009-0.010. safe angle =
+biggest theta with index under that, first crossing, interpolated:
+
+| inclination | 1x stretch | 2x | 3x |
+| --- | --- | --- | --- |
+| 30 | 3.3 deg | 2.0 | 1.4 |
+| 45 | 2.5 deg | 1.7 | 1.2 |
+| 60 | 2.4 deg | 1.7 | 1.2 |
+
+2 independent routes, same answer: the envelope (reader + spearman, A5) said 0-4 deg at 1x, the index
+(no reader, ssim vs the true 3d density) says 2.4-3.3 deg. a camera orbit on a ppv cube is honest for
+about 3 degrees and a velocity stretch halves that. everything past it is interpretation, which is the
+point of the disclosure shot.
+
+safe_path_inc45.json: 240 frames, 2 legs (stretch 1 out to 2.5 deg and back, stretch 2 out to 1.7 and
+back, eased), index rendered per frame not interpolated, max on the path 0.0090 = the threshold, inside.
+its a tiny move. thats the honest number, the disclosure shot (B7) is the one that leaves it on purpose.

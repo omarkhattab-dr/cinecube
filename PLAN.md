@@ -48,11 +48,14 @@ exoALMA 12CO 3-2 disk (J1615, in repo), THINGS HI galaxy (NGC 2403, in repo) (2n
       further out), 97 frames per cube, sweep 7 min. rules in docs/metrics.md: camera 0-4 deg is the
       whole budget, absorption tau 0.25 (l1448) to 0.5 (ngc2403), post effects nearly free except on
       l1448, spectral bin always free
-- [ ] A6 atlas: fig_gallery_atlas.png (row per object, 6 ops), fig_atlas.png (4 ladders + 4x4
-      spearman), mean pairwise rank corr + list of ops whose band flips between objects
-- [ ] A7 honest orbit: safe angle per stretch (index < 1 - structure conditional band) in
-      index json, index.safe_path() 240 frame camera path json, inclinations 30/45/60,
-      fig_index.png with the envelope shaded
+- [x] A6 atlas (nov 5): fig_gallery_atlas.png, fig_atlas.png, results/v1/atlas.json. mean pairwise
+      spearman 0.60, 3 objects agree (0.79-0.90), j1615 doesnt (0.24-0.47). same band everywhere:
+      threshold, mip, colormap, orbit, dof, shading. 10 ops flip. note in docs/metrics.md
+- [x] A7 honest orbit (nov 5): index.py fine grid + 2 thresholds (the plans band rule = 0.628 makes
+      every angle safe, kept in the json, not used; headline = 2x beam on the true picture in the
+      indexs own units = 0.009) + safe_angle() + safe_path(). inclinations 30/45/60 via make disk +
+      make index. safe angle 2.4-3.3 deg at 1x, halves per stretch step, same answer as A5. 240 frame
+      path json, max index on it = threshold. fig_index.png with the envelope + zoom inset
 - [ ] A8 bridge: sweep.frame_from_png(png, cube, cmap, scale, params, label) -> same row json into
       results/blender/<obj>/frames/. round trip test matches in-memory score to 3 decimals
 - [ ] A9 freeze: fresh clone make all from zero (time it, README), results/v1 -> results/frozen,
