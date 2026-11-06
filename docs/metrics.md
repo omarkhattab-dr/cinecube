@@ -289,3 +289,24 @@ same mask, same bands (read from results/v1/<cube>/controls.json). the scale is 
 used to floor to 8 bit while the decoder rounds, so a frame on disk could be 1 level off from the frame
 that was scored. fixed (rounds now), the old pngs in results/v1 are 1 level off until the freeze
 rewrites them, the json scores were always right.
+
+## results note (track B start, nov 5): the clip operator
+
+karma (and every production renderer) cant emit negative light, so the first thing that happens to a
+cube on the way to houdini is a clip at 0. added as a python operator so its cost sits in the atlas
+next to everything else. plain render of the clipped cube, scored like any frame (stay conditional
+band on all 4, but look at the structure column):
+
+| object | data recovered | structure kept | flux visible | band |
+| --- | --- | --- | --- | --- |
+| l1448 | 0.997 | 0.957 | 1.00 | conditional |
+| disk | 0.963 | 0.457 | 1.00 | conditional |
+| j1615 | 0.955 | 0.617 | 1.00 | conditional |
+| ngc2403 | 0.898 | 0.450 | 1.00 | conditional |
+
+the clipped noise adds a positive pedestal that varies pixel to pixel, so the noisy cubes lose rank
+order (ngc2403 0.898) and structure (0.45) before any cinematic knob is touched. on l1448 its free.
+same story as the clip_cost_of_peak numbers in results/houdini/vdb/<key>.json (2% vs 28%). so the
+houdini gate compares against the clipped target, and the paper says: a production render of a noisy
+cube starts conditional, not preserving, and thats physics (no negative emission), not art.
+atlas mean pairwise spearman with the clip row in: 0.59 (was 0.60).
