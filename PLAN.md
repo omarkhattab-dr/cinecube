@@ -56,8 +56,10 @@ exoALMA 12CO 3-2 disk (J1615, in repo), THINGS HI galaxy (NGC 2403, in repo) (2n
       indexs own units = 0.009) + safe_angle() + safe_path(). inclinations 30/45/60 via make disk +
       make index. safe angle 2.4-3.3 deg at 1x, halves per stretch step, same answer as A5. 240 frame
       path json, max index on it = threshold. fig_index.png with the envelope + zoom inset
-- [ ] A8 bridge: sweep.frame_from_png(png, cube, cmap, scale, params, label) -> same row json into
-      results/blender/<obj>/frames/. round trip test matches in-memory score to 3 decimals
+- [x] A8 bridge (nov 5): sweep.frame_from_png() + cli `python -m cinecube.sweep --png x.png --cube l1448
+      --cmap gray --scale S --label ..` -> results/blender/<obj>/frames/<label>.png + .json, same row
+      shape, bands from results/v1/<obj>/controls.json, resizes if the png isnt the cubes size (recorded).
+      round trip test to 1e-3 (found that save_png floored while the decoder rounds, fixed). 41 tests
 - [ ] A9 freeze: fresh clone make all from zero (time it, README), results/v1 -> results/frozen,
       git tag v1.0-results, paper/numbers.md with the json path next to every number
 

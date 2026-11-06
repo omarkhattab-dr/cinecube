@@ -280,3 +280,12 @@ point of the disclosure shot.
 safe_path_inc45.json: 240 frames, 2 legs (stretch 1 out to 2.5 deg and back, stretch 2 out to 1.7 and
 back, eased), index rendered per frame not interpolated, max on the path 0.0090 = the threshold, inside.
 its a tiny move. thats the honest number, the disclosure shot (B7) is the one that leaves it on purpose.
+
+## the bridge (A8, nov 5)
+
+any png + a legend + a scale can be scored like a sweep frame: sweep.frame_from_png(). same reader,
+same mask, same bands (read from results/v1/<cube>/controls.json). the scale is the K km/s at display
+1.0, which for a blender beauty pass is the 99.8 pct of its science pass. one thing it found: save_png
+used to floor to 8 bit while the decoder rounds, so a frame on disk could be 1 level off from the frame
+that was scored. fixed (rounds now), the old pngs in results/v1 are 1 level off until the freeze
+rewrites them, the json scores were always right.
