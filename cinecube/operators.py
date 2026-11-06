@@ -101,6 +101,7 @@ def sky_resample(img, factor=2, method="nearest"):
 # kind volume|image, params name -> default, cls = failure class i expect
 OPERATORS = {
     "reference": dict(family="reference", kind="volume", params={}, cls="none", label="Reference (= moment 0)"),
+    "clip": dict(family="transfer", kind="volume", params={}, cls="deleter", label="Clip at 0 (no negative emission)"),
     "log": dict(family="transfer", kind="volume", params={}, cls="jumbler", label="Log stretch"),
     "asinh": dict(family="transfer", kind="volume", params={}, cls="jumbler", label="Asinh stretch"),
     "threshold": dict(family="transfer", kind="volume", params={"k": 3.0}, cls="confuser", label="Threshold at {k:g} sigma"),
@@ -173,7 +174,11 @@ def apply_operator(cube, name, params=None, cmap="gray"):
                cmap=cmap, ramp_transform=None)
 
     if spec["kind"] == "volume":
-        if name == "spectral_bin":
+        if name == "clip":
+            # what every production renderer does first: negative noise cant emit light. the first
+            # cost of taking a cube into houdini at all, see houdini/export_vdb.py clip_cost_of_peak
+            img_full = render(np.clip(cube.T, 0, None), cube.dv)
+        elif name == "spectral_bin":
             Tb = spectral_bin(cube.T, int(p["factor"]))
             img_full = render(Tb, cube.dv * int(p["factor"]))
         elif name == "sky_resample":

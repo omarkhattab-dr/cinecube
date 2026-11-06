@@ -1,0 +1,18 @@
+{
+ "cube": "l1448",
+ "vdb": "results/houdini/vdb/l1448.vdb",
+ "out": "results/houdini/renders/l1448_plain",
+ "resolution": [105, 105],
+ "theta_deg": 0,
+ "stretch": 1,
+ "samples": 64,
+ "volume_step": 0.5,
+ "engine": "cpu",
+ "emission_scale": 1.0,
+ "absorption": 0,
+ "scatter": 0,
+ "anisotropy": 0,
+ "light": null,
+ "dof": null,
+ "note": "the gate scene. everything off. change samples and volume_step until the gate stops moving"
+}

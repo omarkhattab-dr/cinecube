@@ -1,7 +1,7 @@
 # one command remakes everything. run from repo root with the venv on
 PY ?= python3
 
-.PHONY: test smoke disk sweep index envelope figures all clean
+.PHONY: test smoke disk sweep index envelope figures all clean vdb
 
 test:            ## equivalence test + the rest
 	$(PY) -m pytest -q tests
@@ -23,6 +23,10 @@ index: disk      ## velocity-as-depth index at 3 inclinations + the safe camera 
 	$(PY) -m cinecube.index --disk data/synthetic_disk_inc30.fits --truth data/synthetic_disk_inc30_truth.npz --out results/v1/index_inc30.json
 	$(PY) -m cinecube.index --disk data/synthetic_disk_inc60.fits --truth data/synthetic_disk_inc60_truth.npz --out results/v1/index_inc60.json
 	$(PY) -m cinecube.index --path results/v1/index_inc45.json --frames 240 --out results/v1/safe_path_inc45.json
+
+vdb:             ## track B: export the cubes for houdini (npz + json + target, vdb if the bindings exist)
+	$(PY) -m cinecube.houdini.export_vdb
+	@echo "now on the houdini box: hython cinecube/houdini/npz_to_vdb.py results/houdini/vdb/*.npz   (see cinecube/houdini/README.md)"
 
 envelope:        ## how far each knob goes before it leaves the band, from the sweep json
 	$(PY) -m cinecube.envelope results/v1

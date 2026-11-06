@@ -25,7 +25,7 @@ so the scorecard can be rebuilt from the sidecars alone
 
 the bridge (A8): score a png that came from somewhere else (blender) with the same reader + mask + bands
     python -m cinecube.sweep --png render.png --cube l1448 --cmap gray --label "blender absorb 0.5"
-    -> results/blender/l1448/frames/<label>.png + .json, same row shape as a sweep frame
+    -> results/houdini/l1448/frames/<label>.png + .json, same row shape as a sweep frame
 """
 import argparse
 import itertools
@@ -158,7 +158,7 @@ def _cube_for(key, cfg):
 
 
 def frame_from_png(png_path, cube_key, cmap="gray", scale=None, params=None, label=None, name="external",
-                   sweep_yaml="sweeps/v1.yaml", out_root="results/blender", bands_from="results/v1", mode="blind", ramp_transform=None):
+                   sweep_yaml="sweeps/v1.yaml", out_root="results/houdini", bands_from="results/v1", mode="blind", ramp_transform=None):
     """score a png somebody else rendered (blender, houdini, whatever) exactly like a sweep frame.
 
     png_path    the 8 bit frame a viewer sees, same sky field as the cube (any size, gets resized if not)
@@ -167,7 +167,7 @@ def frame_from_png(png_path, cube_key, cmap="gray", scale=None, params=None, lab
     scale       physical value of display 1.0 in K km/s (the 99.8 pct the science pass was normalized with).
                 None -> the reference renders own scale, which is right when the science pass is the moment0
     params      dict of the knob settings, goes in the json
-    returns the row dict, and writes <out_root>/<cube>/frames/<label>.png (a copy) + .json
+    returns the row dict, and writes <out_root>/<cube>/frames/<label>.png (a copy) + .json. out_root defaults to results/houdini
     """
     cfg = yaml.safe_load(open(sweep_yaml))
     cube, m0, ref, ref01, mask = _cube_for(cube_key, cfg)
@@ -217,7 +217,7 @@ def main(argv=None):
     a = ap.parse_args(argv)
     if a.png:
         row = frame_from_png(a.png, a.cube, a.cmap, a.scale, json.loads(a.params) if a.params else None, a.label, a.name,
-                             sweep_yaml=a.yaml, out_root=a.out or "results/blender")
+                             sweep_yaml=a.yaml, out_root=a.out or "results/houdini")
         print("%-36s data %.3f  structure %.3f  flux %.2f  %s" % (row["label"], row["data_recovered"], row["structure_kept"], row["flux_visible"], row["band"]))
         return
     cfg = yaml.safe_load(open(a.yaml))

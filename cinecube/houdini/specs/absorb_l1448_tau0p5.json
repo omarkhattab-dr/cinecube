@@ -1,0 +1,18 @@
+{
+ "cube": "l1448",
+ "vdb": "results/houdini/vdb/l1448.vdb",
+ "out": "results/houdini/renders/l1448_absorb_0p5",
+ "resolution": [105, 105],
+ "theta_deg": 0,
+ "stretch": 1,
+ "samples": 64,
+ "volume_step": 0.5,
+ "engine": "cpu",
+ "emission_scale": 1.0,
+ "absorption": 0.5,
+ "scatter": 0,
+ "anisotropy": 0,
+ "light": null,
+ "dof": null,
+ "note": "first knob after the gate passes. absorption density = 0.5 x density, the python twin is absorb tau (not the same units, the twin figure maps them)"
+}

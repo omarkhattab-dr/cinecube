@@ -1,16 +1,16 @@
 # cinecube plan v2 (nov 4) - to dec 4
 
 project: how much science survives the shot? a fidelity instrument for cinematic renders of astro
-data cubes, from the proof renderer to blender. VIZA 701 fall 2026, dr kumar. omar + arash.
+data cubes, from the proof renderer to houdini. VIZA 701 fall 2026, dr kumar. omar + arash.
 full version with the timeline is in the claude doc, this is the short one for the repo.
-2 tracks, 1 reader. track A = python (exact, the proof, cheap numbers). track B = openvdb -> blender
+2 tracks, 1 reader. track A = python (exact, the proof, cheap numbers). track B = openvdb -> houdini (karma)
 cycles (real production knobs). same decoder + metrics score both. 4 objects: l1448, fake disk,
 exoALMA 12CO 3-2 disk (J1615, in repo), THINGS HI galaxy (NGC 2403, in repo) (2nd COMPLETE cloud if THINGS is down).
 
 ## the 4 things nobody does
 
 1. **fidelity pass** - science pass (emission only, ortho, linear = moment0) rendered next to the beauty
-   pass in the same blender scene, reader compares per pixel -> fidelity heat map that ships with the
+   pass in the same houdini scene, reader compares per pixel -> fidelity heat map that ships with the
    shot like a depth pass
 2. **fidelity envelope** - bands = a budget (stay conditional). per knob, both renderers, the biggest
    setting still in the band. hero shot per object = all knobs at envelope values + scorecard
@@ -57,41 +57,51 @@ exoALMA 12CO 3-2 disk (J1615, in repo), THINGS HI galaxy (NGC 2403, in repo) (2n
       make index. safe angle 2.4-3.3 deg at 1x, halves per stretch step, same answer as A5. 240 frame
       path json, max index on it = threshold. fig_index.png with the envelope + zoom inset
 - [x] A8 bridge (nov 5): sweep.frame_from_png() + cli `python -m cinecube.sweep --png x.png --cube l1448
-      --cmap gray --scale S --label ..` -> results/blender/<obj>/frames/<label>.png + .json, same row
+      --cmap gray --scale S --label ..` -> results/houdini/<obj>/frames/<label>.png + .json, same row
       shape, bands from results/v1/<obj>/controls.json, resizes if the png isnt the cubes size (recorded).
       round trip test to 1e-3 (found that save_png floored while the decoder rounds, fixed). 41 tests
 - [ ] A9 freeze: fresh clone make all from zero (time it, README), results/v1 -> results/frozen,
       git tag v1.0-results, paper/numbers.md with the json path next to every number
 
-## track B (openvdb -> blender), in order. starts after A3, needs A8 before B5. cinecube/blender/
+## track B (openvdb -> houdini + karma), in order. starts after A3, needs A8 before B5. cinecube/houdini/
 
-- [ ] B1 export_vdb.py: float grid "density" = T clipped at 0 (K), voxel 1,1,stretch, dv + hash +
-      scale in metadata + json. openvdb from conda-forge on the render box, fallback export in the
-      container and copy the .vdb. 1 per object + the fake disks true density as a 2nd grid
-- [ ] B2 scene.py (blender -b -P scene.py -- spec.json): import vdb, principled volume emission ~
-      density, absorb 0 scatter 0, world black, ortho cam down v framing the full field pixel
-      aligned, view transform Standard look None exposure 0 gamma 1, 32 bit exr + 8 bit png, no
-      denoise, fixed samples + step size in the spec. every B4 knob = a spec field defaulting to off
-- [ ] B3 THE GATE: plain render vs moment0, 1 fitted scale, max rel dev in the mask < 1%, vary step
-      size + samples until it stops moving. results/blender/gate_<obj>.json (scale, dev, step,
-      samples, blender version). repeat on the other 3. 2 days max, fail -> blender = scored black
-      box, residual is a result, envelope from python only. fig_blender_gate.png
-- [ ] B4 knob sweep (sweeps/blender_v1.yaml -> sweep_specs.py -> 1 spec per frame): absorption,
-      scatter + anisotropy, lights, color ramp, view transform (AgX/filmic/standard looks), dof,
-      glare, grain, exposure, orbit + v stretch. 4-6 values each, every object. 512 px 64 samples,
-      200 frames. save exr + png + science pass + spec per frame
-- [ ] B5 score.py: every png through frame_from_png, legendless frames (lit, scattered, AgX) read
-      with the gray legend of the science pass (paper says so), orbit frames scored twice like
-      track A, results/blender/<obj>/scorecard.json same shape so figures.py just works,
-      fig_twins_<obj>.png (blender curve over python curve per knob)
+decided nov 5: houdini + karma, not blender (arash runs it, the viz lab has it, karma does volumes
+better). blender stays the fallback in the risks table. everything for arash is in
+cinecube/houdini/README.md: setup, commands, the gate scene node by node, what to send back.
+
+- [x] B1 export (nov 5, python side): cinecube/houdini/export_vdb.py, make vdb -> npz + json + target
+      per object + disk_truth. vdb written directly if the openvdb bindings exist, otherwise
+      npz_to_vdb.py in hython does it with houdinis own tools (no bindings needed). first track B
+      number: clipping negative noise costs 2% of the peak on l1448, 28% on the disk and ngc2403.
+      added "clip" as a python operator so the atlas shows it. ARASH: run npz_to_vdb.py, check the
+      shapes in the viewport (README section 1) -> B1 done
+- [ ] B1 houdini side (arash): hython npz_to_vdb.py on the 5 npz, File sop, shapes right, name = density
+- [ ] B2 scene.py (hython scene.py spec.json): file sop -> vdb, xform for the stretch, pyro shader
+      emission = density + absorb 0 scatter 0, ortho cam down -z 1 px per voxel, no lights, karma rop
+      cpu, linear exr, no denoise, samples + volume step from the spec, saves the hip. WRITTEN, untested
+      (no houdini here), parm names self report on first run. specs/plain_<cube>.json x4 ready.
+      exr_to_png.py = the display step (exr / 99.8 pct of the plain render, colormap), python side, tested
+- [ ] B3 THE GATE: gate.py WRITTEN + tested here on a fake render (passes on the target x k, fails on a
+      blurred one, finds the exr row flip). target = clipped sum x dv, not the raw moment0 (karma cant
+      emit negatives, the clip cost is reported next to it). arash: render plain_l1448, run the gate,
+      halve volume_step / double samples until it stops moving, then the other 3. 2 days max, fail ->
+      houdini = scored black box, residual is a result, envelope from python only
+- [ ] B4 knob sweep (sweeps/houdini_v1.yaml -> sweep_specs.py -> 1 spec per frame): absorption,
+      scatter + anisotropy, lights, color ramp, view transform (OCIO looks), dof, glare, grain,
+      exposure, orbit + v stretch. 4-6 values each, every object. 1 px per voxel, 64 samples,
+      200 frames. save exr + spec per frame, exr_to_png makes the pngs
+- [ ] B5 score.py: every png through frame_from_png (the bridge, A8 done), legendless frames (lit,
+      scattered, OCIO looks) read with the gray legend of the science pass (paper says so), orbit
+      frames scored twice like track A, results/houdini/<obj>/scorecard.json same shape so
+      figures.py just works, fig_twins_<obj>.png (houdini curve over python curve per knob)
 - [ ] B6 fidelity pass + heroes: fidelity map exr per frame (abs err decoded beauty vs science
       pass / display scale), compositor overlay template with toggle + legend, envelope_to_spec.py
-      (A5 values -> blender units), hero frame per object 1920x1080 256 samples with + without
+      (A5 values -> houdini units), hero frame per object 1920x1080 256 samples with + without
       overlay, 240 frame l1448 turntable scored per frame
 - [ ] B7 disclosure shot: fake disk, 10 s, plain map -> 30 deg orbit 2x stretch along the A7 safe
       path, index as a gauge. 2nd version that leaves the envelope on purpose. 5 frame strip in
       fig_index.png
-- [ ] B8 freeze: results/blender -> results/frozen/blender, media -> results/frozen/media (git
+- [ ] B8 freeze: results/houdini -> results/frozen/houdini, media -> results/frozen/media (git
       ignored, archived), numbers into paper/numbers.md
 
 ## pace (targets not a people split)
@@ -109,12 +119,13 @@ nov 26 is the holiday, ask kumar if the 3rd progress slot moves.
 
 ## fallbacks
 
-- blender gate fails (> 1% after nov 10): blender stays a scored black box, residual is a result,
+- houdini gate fails (> 1% after nov 10): houdini stays a scored black box, residual is a result,
   envelope from python only
-- vdb export wont install: export in the container, copy the files. houdini via viz lab 2nd
+- no openvdb bindings: not needed, npz_to_vdb.py in hython. blender is the fallback renderer if
+  houdini licensing or karma volumes turn into a time sink
 - cubes too big / unreachable: crop + 2x downsample, galaxy -> 2nd COMPLETE cloud
-- blender too slow: 256 px 32 samples for sweeps, drop scatter
-- blender overruns: nov 13 shows the gate only, track A carries both pres, blender enters nov 20
+- karma too slow: 32 samples for sweeps, xpu, drop scatter
+- houdini overruns: nov 13 shows the gate only, track A carries both pres, houdini enters nov 20
 - envelope undefined: say so (always distorting or never costs), widen grid once
 - index argues with itself: keep 1-ssim only
 - bands weird on a new object: raw scores + controls as lines, never retune the reader per object

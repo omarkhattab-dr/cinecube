@@ -14,6 +14,7 @@ controls: {beam_fwhm_px: 2.0}   # l1448: 46 arcsec beam / 23 arcsec px
 beams: {l1448: 2.0, disk: 2.5}   # no BMAJ in those 2 headers. j1615 + ngc2403 have one so theyre not here
 noise_edge_channels: 3
 operators:
+  - name: clip        # negative noise cant emit, what every production renderer does first
   - name: log
   - name: asinh
   - name: threshold

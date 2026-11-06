@@ -8,6 +8,7 @@ decoder: {mode: blind, recipe: jnd, jnd: 2.9}     # bujack 2026 bins, see docs/m
 vis_jnd: 2.3          # flux visible = 1 JND from the legends zero color
 controls: {beam_fwhm_px: 2.0}   # l1448: 46 arcsec beam / 23 arcsec px
 operators:
+  - {name: clip}
   - {name: log}
   - {name: asinh}
   - {name: threshold}

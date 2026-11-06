@@ -19,7 +19,8 @@ make sweep         # full v1 sweep, l1448 + disk (~40s) -> results/v1/<cube>/
 make index         # velocity-as-depth index on the disk -> results/v1/index_inc45.json
 make envelope      # biggest setting per knob still inside the band -> results/v1/envelope.json + .md
 make figures       # all figs into paper/figures/ from the json in results/v1/
-make all           # everything
+make all           # everything (track A)
+make vdb           # track B step 1, cubes -> results/houdini/vdb/, then houdini. see cinecube/houdini/README.md
 ```
 
 every frame = 1 png + 1 json (operator, params, decoder settings, scores, cube hash, version).
@@ -30,6 +31,7 @@ always be remade from scratch.
 
 ```
 cinecube/        the package: io, prep, render, operators, decode, metrics, sweep, synth, index, envelope, figures
+cinecube/houdini track B: export_vdb, npz_to_vdb (hython), scene (hython), gate, exr_to_png, specs/. README in there
 tests/           pytest, test_equivalence.py is the one that matters
 data/            l1448 (2.3mb), exoalma j1615 (34mb), things ngc2403 (36mb), fake disk gets built by make disk
 sweeps/          yaml sweeps, smoke.yaml (quick) and v1.yaml (the paper one)
