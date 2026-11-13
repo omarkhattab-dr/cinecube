@@ -1,15 +1,3 @@
-"""
-io.py - loading the cube, moment maps, noise, sky mask
-
-moment maps come from spectral-cube on purpose. the thing i score against should not
-come out of my own renderer.
-
-cubes come in 2 flavours:
-  single dish (l1448)   K, velocity axis already, no beam in the header
-  interferometer (alma) Jy/beam, FREQ axis, a beam per channel, NaN outside the imaged area
-load_cube() turns both into the same thing: T in K, v in km/s (radio convention), a beam in px,
-a valid mask for the NaN padding. everything it did is in cube.meta so the frame json can say it
-"""
 from dataclasses import dataclass, field
 import hashlib
 import warnings
@@ -21,19 +9,6 @@ warnings.filterwarnings("ignore")
 
 @dataclass
 class Cube:
-    """ppv cube in K
-
-    T       array [v, y, x] in K, nans -> 0
-    dv      channel width km/s
-    v       velocity axis km/s
-    sigma   noise per channel (K), from the empty end channels
-    path    where it came from
-    name    short label for file names
-    valid   [y, x] bool, False where the cube is NaN padding (outside the alma image), sky mask uses it
-    beam_fwhm_px  beam fwhm in pixels (None if the header has no beam and nobody passed one)
-    meta    what load_cube did: input unit, input spectral axis, rest freq, pixel size, beam
-    sc      the SpectralCube object, kept around for the moment maps
-    """
     T: np.ndarray
     dv: float
     v: np.ndarray
@@ -51,25 +26,18 @@ class Cube:
 
     @property
     def sigma_m0(self):
-        """noise of the moment0 map if you sum all channels: sigma * dv * sqrt(nchan)"""
         return self.sigma * self.dv * np.sqrt(self.T.shape[0])
 
 
 def load_cube(path, name=None, n_edge=3, beam_fwhm_px=None):
-    """read a fits cube with spectral-cube, give back a Cube in K and km/s
-
-    beam_fwhm_px: an explicit beam (from the yaml) wins over the header. None -> header, else None
-    n_edge: how many channels at each end of the band count as empty for the noise
-    """
     from spectral_cube import SpectralCube
     import astropy.units as u
 
     sc = SpectralCube.read(path)
-    if hasattr(sc, "stokes_data"):          # 4d aips cube -> first stokes
+    if hasattr(sc, "stokes_data"):
         sc = sc.stokes_data[list(sc.components)[0]]
     meta = dict(unit_in=str(sc.unit), spectral_in=str(sc.spectral_axis.unit), ctype3=str(sc.wcs.wcs.ctype[2]), n_edge=n_edge)
 
-    # spectral axis -> km/s. alma gives FREQ, so radio convention with the rest freq from the header
     rest = sc.header.get("RESTFRQ") or sc.header.get("RESTFREQ")
     if sc.spectral_axis.unit.is_equivalent(u.Hz):
         if not rest:
@@ -80,7 +48,6 @@ def load_cube(path, name=None, n_edge=3, beam_fwhm_px=None):
         sc = sc.with_spectral_unit(u.km / u.s)
     meta["restfrq_hz"] = float(rest) if rest else None
 
-    # brightness -> K. Jy/beam needs the beam and the frequency, spectral-cube does that per channel
     if sc.unit.is_equivalent(u.Jy / u.beam) or "Jy" in str(sc.unit):
         sc = sc.to(u.K)
         meta["converted"] = "Jy/beam -> K via the beam (spectral-cube .to(K))"
@@ -94,7 +61,6 @@ def load_cube(path, name=None, n_edge=3, beam_fwhm_px=None):
     v = sc.spectral_axis.value
     dv = float(abs(np.median(np.diff(v))))
 
-    # pixel size + beam. multi beam cubes (alma) -> median beam
     pix = pixel_arcsec(sc)
     meta["pixel_arcsec"] = pix
     bmaj = header_beam_arcsec(sc)
@@ -116,7 +82,6 @@ def load_cube(path, name=None, n_edge=3, beam_fwhm_px=None):
 
 
 def pixel_arcsec(sc):
-    """pixel size in arcsec from the wcs, None if the wcs is not sky"""
     try:
         from astropy.wcs.utils import proj_plane_pixel_scales
         scales = proj_plane_pixel_scales(sc.wcs.celestial)
@@ -126,7 +91,6 @@ def pixel_arcsec(sc):
 
 
 def header_beam_arcsec(sc):
-    """BMAJ in arcsec. single beam from the header, or the median of a beam table. None if neither"""
     try:
         if hasattr(sc, "beams") and sc.beams is not None:
             return float(np.median([b.major.to("arcsec").value for b in sc.beams]))
@@ -139,33 +103,28 @@ def header_beam_arcsec(sc):
 
 
 def noise_sigma(T, n_edge=3, valid=None):
-    """noise from the n_edge empty channels at both ends of the band, real pixels only"""
     sel = valid if valid is not None else np.ones(T.shape[1:], dtype=bool)
     edges = np.concatenate([T[:n_edge][:, sel].ravel(), T[-n_edge:][:, sel].ravel()])
     return float(np.std(edges))
 
 
 def moment0(cube):
-    """total emission K km/s. from spectral-cube not from me"""
     import astropy.units as u
     m0 = cube.sc.with_spectral_unit(u.km / u.s).moment(order=0)
     return np.nan_to_num(m0.value.astype(np.float64))
 
 
 def moment1(cube):
-    """mean velocity weighted by intensity, km/s"""
     import astropy.units as u
     m1 = cube.sc.with_spectral_unit(u.km / u.s).moment(order=1)
     return np.nan_to_num(m1.value.astype(np.float64))
 
 
 def peak_intensity(cube):
-    """peak along v, in K. the MIP render should match this"""
     return cube.T.max(axis=0)
 
 
 def sky_mask(m0, sigma_m0, k=3.0, valid=None):
-    """pixels where moment0 is real signal: m0 > k * sigma_m0, and not NaN padding"""
     m = m0 > k * sigma_m0
     if valid is not None:
         m &= valid
@@ -173,7 +132,6 @@ def sky_mask(m0, sigma_m0, k=3.0, valid=None):
 
 
 def cube_hash(path):
-    """short hash of the file so every result knows which cube it came from"""
     h = hashlib.sha256()
     with open(path, "rb") as f:
         for chunk in iter(lambda: f.read(1 << 20), b""):

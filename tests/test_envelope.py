@@ -1,4 +1,3 @@
-"""envelope: first crossing along the grid, none / top / value, categorical ops, 2 param ops"""
 from cinecube.envelope import envelope_for_card, crossing, to_markdown
 
 
@@ -10,13 +9,9 @@ def row(name, params, data, band="conditional", label=None):
 def fake_card():
     bands = dict(preserving_min=0.99, conditional_min=0.90, structure_preserving_min=0.9, structure_conditional_min=0.5)
     rows = [row("reference", {}, 1.0, "preserving")]
-    # monotone, crosses conditional between 0.5 and 1.0
     rows += [row("absorb", {"tau": t}, d) for t, d in ((0.1, 0.995), (0.25, 0.95), (0.5, 0.91), (1.0, 0.7))]
-    # never leaves
     rows += [row("dof", {"sigma": s}, d) for s, d in ((1, 0.98), (2, 0.97), (4, 0.95))]
-    # always out
     rows += [row("vignette", {"strength": s}, d) for s, d in ((0.25, 0.8), (0.5, 0.6))]
-    # dips out and comes back: first crossing wins
     rows += [row("orbit", {"theta": t, "aspect": 1}, d) for t, d in ((0, 0.995), (10, 0.85), (20, 0.92), (30, 0.5))]
     rows += [row("orbit", {"theta": t, "aspect": 2}, d) for t, d in ((0, 0.995), (10, 0.95), (20, 0.92), (30, 0.5))]
     rows += [row("colormap", {"cmap": c}, d, b) for c, d, b in (("gray", 0.995, "preserving"), ("jet", 0.93, "conditional"))]
@@ -40,7 +35,6 @@ def test_envelope_table():
     assert absorb["monotone"]
     assert by[("dof", ())]["conditional"]["status"] == "top"
     assert by[("vignette", ())]["conditional"]["status"] == "none"
-    # dip at theta 10 stops the envelope at 0 even though 20 is back inside
     o1 = by[("orbit", (("aspect", 1),))]
     assert o1["conditional"]["value"] == 0 and not o1["monotone"]
     o2 = by[("orbit", (("aspect", 2),))]

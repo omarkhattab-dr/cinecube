@@ -1,4 +1,3 @@
-"""fake disk: builds, loads like a real cube, zero point holds on it too"""
 import os
 import numpy as np
 
@@ -16,7 +15,6 @@ def test_disk_builds_and_equivalence_holds(tmp_path):
     m0 = moment0(cube)
     ref = render(cube.T, cube.dv)
     assert np.max(np.abs(ref - m0)) < 1e-6 * m0.max()
-    # moment0 should be the column density, same shape same place
     col = truth["rho"].sum(axis=0)
     assert np.corrcoef(col.ravel(), m0.ravel())[0, 1] > 0.95
 
@@ -35,6 +33,6 @@ def test_safe_angle_crossing():
     rows += [dict(theta=t, stretch=2, one_minus_ssim=v) for t, v in ((0, 0.0), (2, 0.02), (4, 0.04))]
     rows += [dict(theta=t, stretch=3, one_minus_ssim=v) for t, v in ((0, 0.0), (2, 0.001), (4, 0.002))]
     s = safe_angle(rows, 0.01)
-    assert s["1"]["status"] == "value" and abs(s["1"]["theta"] - 2.5) < 1e-9     # crosses between 2 and 4, interpolated
+    assert s["1"]["status"] == "value" and abs(s["1"]["theta"] - 2.5) < 1e-9
     assert s["2"]["status"] == "value" and abs(s["2"]["theta"] - 1.0) < 1e-9
     assert s["3"]["status"] == "all" and s["3"]["theta"] == 4.0

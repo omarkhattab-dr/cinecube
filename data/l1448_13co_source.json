@@ -1,0 +1,17 @@
+{
+ "object": "L1448",
+ "line": "13CO 1-0",
+ "survey": "FCRAO COMPLETE",
+ "reference": "Ridge et al. 2006",
+ "source": "github.com/astropy/astropy-data l1448/l1448_13co.fits",
+ "shape": [
+  53,
+  105,
+  105
+ ],
+ "dv_kms": 0.066,
+ "unit": "K",
+ "beam_arcsec": 46,
+ "pixel_arcsec": 23,
+ "beam_fwhm_px": 2.0
+}

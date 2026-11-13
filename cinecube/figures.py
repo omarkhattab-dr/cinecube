@@ -1,17 +1,3 @@
-"""
-figures.py - every paper figure, from the json in results/, nothing by hand
-
-    python -m cinecube.figures results/v1 paper/figures
-
-for each cube folder with a scorecard.json:
-    fig_ladder_<cube>.png     operators ranked by data recovered, with structure + flux
-    fig_families_<cube>.png   score vs parameter for every family that got swept, bands shaded
-    fig_gallery_<cube>.png    frames in a grid with their 3 numbers
-plus fig_gallery_atlas.png + fig_atlas.png (+ results/<v>/atlas.json) when there are 2+ cubes,
-fig_index.png if results/<v>/index*.json is there, fig_envelope.png if envelope.json is there
-(make envelope), and fig_equivalence.png from l1448.
-print style: white bg, 300 dpi
-"""
 import argparse
 import glob
 import json
@@ -34,8 +20,6 @@ def band_color(b):
 
 
 def _defaults_rows(card):
-    """1 row per operator: the swept row closest to the registry defaults (exact if it was swept,
-    else the nearest numeric value, so the same setting shows on every object)"""
     from .operators import OPERATORS
     groups = {}
     for r in card["rows"]:
@@ -80,7 +64,6 @@ def ladder(card, out):
 
 
 def families(card, out):
-    """every operator swept over a numeric param -> score vs that param"""
     groups = {}
     for r in card["rows"]:
         if r["name"] == "reference":
@@ -98,7 +81,6 @@ def families(card, out):
     fig, axes = plt.subplots(nrow, ncol, figsize=(3.0 * ncol, 2.4 * nrow), squeeze=False)
     b = card["bands"]
     for ax, (name, rows) in zip(axes.ravel(), groups.items()):
-        # the param that varies the most is the x axis
         keys = [k for k in rows[0]["params"] if isinstance(rows[0]["params"][k], (int, float)) and not isinstance(rows[0]["params"][k], bool)]
         var = max(keys, key=lambda k: len(set(r["params"][k] for r in rows)))
         others = sorted(set(tuple((k, r["params"][k]) for k in rows[0]["params"] if k != var) for r in rows))
@@ -141,9 +123,6 @@ def gallery(card, frames_dir, out, max_n=20):
 
 
 def index_figure(paths, out):
-    """index vs orbit angle per inclination, 3 stretches. the safe envelope (index under the 2x beam
-    threshold) is shaded and the safe angle per stretch is marked, in a zoom inset because it all
-    happens in the first 5 degrees"""
     from mpl_toolkits.axes_grid1.inset_locator import inset_axes
     fig, axes = plt.subplots(1, len(paths), figsize=(3.4 * len(paths), 3.0), squeeze=False)
     cols = [INK, "#4b6cb7", "#e9a23b"]
@@ -161,7 +140,6 @@ def index_figure(paths, out):
         ax.set_xlabel("orbit angle (deg)", fontsize=8); ax.set_ylabel("index (1 - SSIM)", fontsize=8); ax.set_ylim(0, 0.64); ax.set_xlim(0, 92)
         ax.tick_params(labelsize=7)
         ax.set_title("inclination %s deg" % d.get("inc_deg"), fontsize=9); ax.legend(fontsize=6.5, frameon=False, loc="lower right")
-        # the zoom: 0 to 6 deg, where the envelope is
         ins = inset_axes(ax, width="46%", height="46%", loc="upper left", borderpad=1.2)
         for k, s in enumerate(stretches):
             sub = sorted([r for r in d["rows"] if r["stretch"] == s and r["theta"] <= 6], key=lambda r: r["theta"])
@@ -196,13 +174,9 @@ def equivalence(cube_path, out):
 
 
 def envelope_figure(path, out):
-    """operators on y, 1 marker per object at its envelope position along its own grid (0 = smallest
-    grid value, 1 = biggest). filled = stay conditional, hollow = stay preserving. x at the left edge =
-    none (always out), triangle at the right edge = top of grid"""
     results = json.load(open(path))
     objs = [r["cube"] for r in results]
     marks = ["o", "s", "D", "^", "v", "P"]
-    # one row per (operator, fixed) that has a numeric knob, same order for every object
     keys = []
     for r in results:
         for e in r["entries"]:
@@ -245,8 +219,7 @@ def envelope_figure(path, out):
     fig.savefig(out, dpi=300, bbox_inches="tight"); plt.close(fig)
 
 
-# ---------------------------------------------------------------- the atlas (A6)
-ATLAS_OPS = ["reference", "log", "absorb", "colormap", "orbit", "shading"]   # same 6 on every object
+ATLAS_OPS = ["reference", "log", "absorb", "colormap", "orbit", "shading"]
 
 
 def _frame_png(card_path, row):
@@ -255,7 +228,6 @@ def _frame_png(card_path, row):
 
 
 def gallery_atlas(cards, out):
-    """one row per object, the same 6 operators at their defaults, 3 scores under each"""
     fig, axes = plt.subplots(len(cards), len(ATLAS_OPS), figsize=(2.0 * len(ATLAS_OPS), 2.25 * len(cards)), squeeze=False)
     for i, (card_path, card) in enumerate(cards):
         rows = {r["name"]: r for r in _defaults_rows(card)}
@@ -279,8 +251,6 @@ def gallery_atlas(cards, out):
 
 
 def atlas(cards, out, json_out):
-    """4 ladders side by side (defaults row per operator) + the spearman matrix between the rankings.
-    writes atlas.json with the matrix, the mean pairwise rank corr and the ops whose band flips"""
     from scipy.stats import spearmanr
     objs = [c["cube"] for _, c in cards]
     rows = {c["cube"]: {r["name"]: r for r in _defaults_rows(c)} for _, c in cards}

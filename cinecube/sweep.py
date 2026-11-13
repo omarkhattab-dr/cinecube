@@ -1,32 +1,3 @@
-"""
-sweep.py - run a yaml sweep, 1 png + 1 json per frame, then a scorecard
-
-    python -m cinecube.sweep sweeps/v1.yaml                 # all cubes in the yaml
-    python -m cinecube.sweep sweeps/v1.yaml --cube l1448    # just one
-
-yaml looks like this (see sweeps/v1.yaml):
-    cubes:
-      l1448: data/l1448_13co.fits
-    beams: {l1448: 2.0}      # beam fwhm in px per cube. yaml > fits header > controls.beam_fwhm_px
-    noise_edge_channels: 3   # empty channels at each end of the band for the noise
-    out: results/v1
-    decoder: {mode: blind, recipe: jnd, jnd: 2.9}
-    vis_jnd: 2.3
-    controls: {beam_fwhm_px: 2.0}
-    operators:
-      - name: log
-      - name: threshold
-        grid: {k: [1, 2, 3, 5]}
-      - name: orbit
-        grid: {theta: [0, 10, 20, 30, 45, 60, 90], aspect: [1, 2, 3]}
-
-every frame json has the operator, params, decoder settings, scores, cube hash and version,
-so the scorecard can be rebuilt from the sidecars alone
-
-the bridge (A8): score a png that came from somewhere else (blender) with the same reader + mask + bands
-    python -m cinecube.sweep --png render.png --cube l1448 --cmap gray --label "blender absorb 0.5"
-    -> results/houdini/l1448/frames/<label>.png + .json, same row shape as a sweep frame
-"""
 import argparse
 import itertools
 import json
@@ -48,7 +19,6 @@ from .operators import colormap
 
 
 def expand(entry):
-    """{name, grid: {a: [..], b: [..]}} -> list of (name, params)"""
     name = entry["name"]
     grid = entry.get("grid") or {}
     if not grid:
@@ -63,8 +33,6 @@ def expand(entry):
 
 
 def save_png(rgb, path):
-    """8 bit png, rows flipped so y is up. rounds like the decoder does (astype would floor, and then
-    the png on disk is not the frame that got scored, the bridge test caught that)"""
     Image.fromarray(np.round(np.clip(rgb, 0, 1) * 255).astype(np.uint8)[::-1]).save(path)
 
 
@@ -89,13 +57,11 @@ def run_cube(cfg, key, path, out_root):
         print("[%s] loader: %s, %s" % (key, cube.meta["converted"], cube.meta.get("spectral_in")))
 
     ctrl_cfg = cfg.get("controls") or {}
-    # beam fwhm in px: yaml beams[key] wins (load_cube got it), then the fits header, then controls.beam_fwhm_px
     beam = float(cube.beam_fwhm_px or ctrl_cfg.get("beam_fwhm_px", 2.0))
     print("[%s] beam %.2f px (%s)" % (key, beam, "yaml" if yaml_beam else cube.meta.get("beam_source", "default")))
     ctrl = controls(m0, ref, mask, beam_fwhm_px=beam, decoder=dec, jnd_vis=vis)
     bands = bands_from_controls(ctrl)
     if cfg.get("bands"):
-        # bands in the yaml override the derived ones (eg the oct 27 guess 0.95 / 0.80)
         bands.update(cfg["bands"])
         bands["source"] = "yaml"
     else:
@@ -108,14 +74,13 @@ def run_cube(cfg, key, path, out_root):
     for i, (name, params) in enumerate(jobs):
         fr = apply_operator(cube, name, params)
         recovered, rec01 = decode_frame(fr, mode=mode, **dec)
-        zero = zero_color_lab(fr["cmap"])      # blind viewer compares to the legend, not to the graded zero
+        zero = zero_color_lab(fr["cmap"])
         s = score_frame(m0, ref01, recovered, mask, fr["rgb"], zero, vis)
         s["flip"] = flip_score(colormap(ref01, "gray"), fr["rgb"]) if fr["rgb"].shape[:2] == ref01.shape else None
         row = dict(index=i, name=name, params=params, label=fr["label"], family=fr["family"], kind=fr["kind"], expected_class=fr["cls"],
                    cmap=fr["cmap"], decoder=dict(mode=mode, **dec), vis_jnd=vis, scores=s,
                    data_recovered=s["headline"]["data_recovered"], structure_kept=s["headline"]["structure_kept"], flux_visible=s["headline"]["flux_visible"],
                    band=classify(s["headline"]["data_recovered"], bands), cube=key, cube_hash=chash, version=__version__)
-        # fair orbit comparison, same frame scored against the reference from the same camera
         if name == "orbit":
             cm = render(cube.T, cube.dv, theta_deg=params["theta"], aspect=params["aspect"])
             cm_c = center_crop_like(cm, ref) if cm.shape != ref.shape else cm
@@ -136,9 +101,7 @@ def run_cube(cfg, key, path, out_root):
     return card
 
 
-# ---------------------------------------------------------------- the bridge (A8): score any png
 def load_png(path):
-    """png -> float rgb 0..1 [y, x, 3] with y up, undoing the flip save_png does"""
     img = np.asarray(Image.open(path).convert("RGB"), dtype=np.float64) / 255.0
     return img[::-1]
 
@@ -159,16 +122,6 @@ def _cube_for(key, cfg):
 
 def frame_from_png(png_path, cube_key, cmap="gray", scale=None, params=None, label=None, name="external",
                    sweep_yaml="sweeps/v1.yaml", out_root="results/houdini", bands_from="results/v1", mode="blind", ramp_transform=None):
-    """score a png somebody else rendered (blender, houdini, whatever) exactly like a sweep frame.
-
-    png_path    the 8 bit frame a viewer sees, same sky field as the cube (any size, gets resized if not)
-    cube_key    key in the sweep yaml (l1448, disk, j1615, ngc2403)
-    cmap        the legend the viewer has. frames with no legend -> gray
-    scale       physical value of display 1.0 in K km/s (the 99.8 pct the science pass was normalized with).
-                None -> the reference renders own scale, which is right when the science pass is the moment0
-    params      dict of the knob settings, goes in the json
-    returns the row dict, and writes <out_root>/<cube>/frames/<label>.png (a copy) + .json. out_root defaults to results/houdini
-    """
     cfg = yaml.safe_load(open(sweep_yaml))
     cube, m0, ref, ref01, mask = _cube_for(cube_key, cfg)
     dec = dict(cfg.get("decoder") or {}); dec.pop("mode", None)

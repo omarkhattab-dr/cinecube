@@ -1,28 +1,3 @@
-"""
-index.py - the velocity-as-depth index, the safe angle, the honest camera path
-
-2 worlds, same camera. world A = the ppv cube, what an orbiting camera shows you, v axis scaled
-by the stretch. world B = the true density on its spatial grid. render both from the same angle
-with the plain renderer and compare the 2 pictures. at theta 0 they are the same sky image so
-the index is 0 by construction, then it grows with angle.
-
-    python -m cinecube.index --disk data/synthetic_disk.fits --truth data/synthetic_disk_truth.npz \
-        --out results/v1/index_inc45.json
-    python -m cinecube.index --path results/v1/index_inc45.json --frames 240 --out results/v1/safe_path_inc45.json
-
-2 parts, both saved, keep whichever the paper needs:
-    one_minus_ssim   1 - ssim between the 2 display normalized renders on a common canvas
-    chamfer          mean symmetric chamfer distance (px) between the 2 silhouettes (> 10% of max)
-
-the safe angle per stretch = biggest theta where the index is still under a threshold (first crossing,
-linear interpolation between grid points). 2 thresholds in the json:
-    threshold_beam   1 - ssim(true render, true render blurred to 2x the beam). same "twice the beam"
-                     rule as the bands, but in the indexs own currency (no decoder in the loop). headline
-    threshold_band   1 - structure_conditional_min from the disks controls.json (the plan said this one).
-                     its 0.63 on the disk because the reader + 2x beam wreck ssim on a smooth disk through
-                     26 gray levels, and the index never gets above 0.4, so everything would be "safe".
-                     kept in the json so the paper can say why its not the one used
-"""
 import argparse
 import json
 import os
@@ -64,9 +39,8 @@ def chamfer(mask_a, mask_b):
 
 
 def velocity_as_depth_index(T, dv, rho, theta_deg, stretch=1.0, sil_thresh=0.1):
-    """one orbit setting -> dict(one_minus_ssim, chamfer, theta, stretch)"""
-    ppv = render(T, dv, theta_deg=theta_deg, aspect=stretch)          # world A, v as depth
-    true = render(rho, 1.0, theta_deg=theta_deg, aspect=1.0)           # world B, z as depth (px)
+    ppv = render(T, dv, theta_deg=theta_deg, aspect=stretch)
+    true = render(rho, 1.0, theta_deg=theta_deg, aspect=1.0)
     a, b = _canvas(norm_disp(ppv), norm_disp(true))
     ssim = _ssim(a, b)
     ch = chamfer(a > sil_thresh, b > sil_thresh)
@@ -74,7 +48,6 @@ def velocity_as_depth_index(T, dv, rho, theta_deg, stretch=1.0, sil_thresh=0.1):
 
 
 def beam_threshold(rho, beam_fwhm_px):
-    """what twice the beam costs the true density picture, in index units: 1 - ssim(true, blur(true))"""
     true = norm_disp(render(rho, 1.0))
     sigma = 2.0 * beam_fwhm_px * FWHM2SIGMA
     blurred = norm_disp(ndimage.gaussian_filter(render(rho, 1.0), sigma))
@@ -82,8 +55,6 @@ def beam_threshold(rho, beam_fwhm_px):
 
 
 def safe_angle(rows, threshold, key="one_minus_ssim"):
-    """per stretch: biggest theta where the index is still <= threshold. first crossing, linear interp.
-    -> {stretch: dict(theta, status)}  status = value / all (never crosses in the grid) / none"""
     out = {}
     for s in sorted(set(r["stretch"] for r in rows)):
         ser = sorted([r for r in rows if r["stretch"] == s], key=lambda r: r["theta"])
@@ -96,7 +67,6 @@ def safe_angle(rows, threshold, key="one_minus_ssim"):
         if k is None:
             out[str(int(s))] = dict(theta=float(th[-1]), status="all")
             continue
-        # crossing between k-1 and k
         f = (threshold - ix[k - 1]) / (ix[k] - ix[k - 1] + 1e-12)
         out[str(int(s))] = dict(theta=float(th[k - 1] + f * (th[k] - th[k - 1])), status="value", grid_below=float(th[k - 1]), grid_above=float(th[k]))
     return out
@@ -107,8 +77,6 @@ def run(disk_path, truth_path, thetas, stretches, out, controls_path=None):
     tr = np.load(truth_path, allow_pickle=False)
     rho = tr["rho"].astype(np.float64)
     params = json.loads(str(tr["params"]))
-    # index is about geometry so use the clean cube when the truth has it.
-    # noise just drags ssim down everywhere and hides the angle dependence
     T = tr["T_clean"].astype(np.float64) if "T_clean" in tr.files else cube.T
     rows = []
     for s in stretches:
@@ -137,9 +105,6 @@ def _ease(t):
 
 
 def safe_path(index_json, n_frames=240, out=None):
-    """a camera path that stays inside the safe angle: first half at stretch 1 (0 -> safe -> 0),
-    second half at stretch 2 (0 -> safe -> 0), eased. the index is rendered for every frame, not
-    interpolated, so the gauge in the disclosure shot is the real number"""
     d = json.load(open(index_json))
     cube = load_cube(d["disk"], name="disk")
     tr = np.load(d["truth"], allow_pickle=False)
@@ -152,7 +117,7 @@ def safe_path(index_json, n_frames=240, out=None):
     for leg, (stretch, amax) in enumerate(legs):
         for i in range(per_leg):
             t = i / max(per_leg - 1, 1)
-            theta = amax * _ease(2 * t if t < 0.5 else 2 - 2 * t)      # out and back
+            theta = amax * _ease(2 * t if t < 0.5 else 2 - 2 * t)
             r = velocity_as_depth_index(T, cube.dv, rho, theta, stretch)
             frames.append(dict(frame=len(frames), t=float(t), leg=leg, theta=float(theta), stretch=float(stretch), index=r["one_minus_ssim"]))
     worst = max(f["index"] for f in frames)

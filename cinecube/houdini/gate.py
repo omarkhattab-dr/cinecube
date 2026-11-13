@@ -1,22 +1,3 @@
-"""
-gate.py - the zero point check for a production render. runs here, no houdini needed.
-
-    python -m cinecube.houdini.gate --render renders/l1448_plain.exr --cube l1448
-    python -m cinecube.houdini.gate --render renders/l1448_plain.exr --cube l1448 --samples 256 --step 0.5
-
-takes the plain render (emission only, ortho camera down -z, 1 px per voxel, linear exr) and compares
-it to the gate target = sum over z of the clipped density times dv (results/houdini/vdb/<key>_target.npy).
-emission only rendering is linear so the 2 should be the same map up to 1 scale factor k. the fit is
-least squares inside the sky mask. pass = max |k * render - target| inside the mask under 1% of the
-target peak. writes results/houdini/gate_<key>.json + gate_<key>.png (render, target, deviation map).
-
-orientation: an exr has row 0 at the top, our maps have row 0 at the bottom. the gate tries the 4
-flips and keeps the one that fits best, and says which, so a flipped camera doesnt fail the gate for
-the wrong reason. a transposed render (x and y swapped) is also tried.
-
-render formats: .exr (R channel or luminance), .npy (float array), .png (8 or 16 bit, treated as linear,
-only good for a rough look, use exr for the real gate)
-"""
 import argparse
 import json
 import os
@@ -32,17 +13,17 @@ def read_render(path, channel="R"):
         return np.load(path).astype(np.float64)
     if ext == ".exr":
         import OpenEXR
-        try:                                            # openexr 3.x api
+        try:
             with OpenEXR.File(path) as f:
                 ch = f.channels()
                 if channel in ch:
                     return np.asarray(ch[channel].pixels, dtype=np.float64)
-                if "RGB" in ch:                           # interleaved rgb -> luminance like channel mean
+                if "RGB" in ch:
                     return np.asarray(ch["RGB"].pixels, dtype=np.float64).mean(axis=-1)
                 key = list(ch)[0]
                 px = np.asarray(ch[key].pixels, dtype=np.float64)
                 return px.mean(axis=-1) if px.ndim == 3 else px
-        except AttributeError:                          # legacy 2.x api
+        except AttributeError:
             import Imath
             f = OpenEXR.InputFile(path)
             dw = f.header()["dataWindow"]
@@ -58,7 +39,6 @@ def read_render(path, channel="R"):
 
 
 def write_exr(path, arr):
-    """for tests and for people who want to look at the target in nuke/houdini"""
     import OpenEXR
     a = np.ascontiguousarray(arr.astype(np.float32))
     try:
@@ -118,7 +98,6 @@ def gate(render_path, key, vdb_dir="results/houdini/vdb", sweep_yaml="sweeps/v1.
                extra=extra or {})
     os.makedirs(out_dir, exist_ok=True)
     json.dump(out, open(os.path.join(out_dir, "gate_%s.json" % key), "w"), indent=1)
-    # the picture: render, target, deviation
     import matplotlib
     matplotlib.use("Agg")
     import matplotlib.pyplot as plt

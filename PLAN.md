@@ -2,9 +2,8 @@
 
 project: how much science survives the shot? a fidelity instrument for cinematic renders of astro
 data cubes, from the proof renderer to houdini. VIZA 701 fall 2026, dr kumar. omar + arash.
-full version with the timeline is in the claude doc, this is the short one for the repo.
-2 tracks, 1 reader. track A = python (exact, the proof, cheap numbers). track B = openvdb -> houdini (karma)
-cycles (real production knobs). same decoder + metrics score both. 4 objects: l1448, fake disk,
+2 tracks, 1 reader. track A = python (exact, the proof, cheap numbers). track B = openvdb -> houdini (karma),
+real production knobs. same decoder + metrics score both. 4 objects: l1448, fake disk,
 exoALMA 12CO 3-2 disk (J1615, in repo), THINGS HI galaxy (NGC 2403, in repo) (2nd COMPLETE cloud if THINGS is down).
 
 ## the 4 things nobody does
@@ -60,21 +59,32 @@ exoALMA 12CO 3-2 disk (J1615, in repo), THINGS HI galaxy (NGC 2403, in repo) (2n
       --cmap gray --scale S --label ..` -> results/houdini/<obj>/frames/<label>.png + .json, same row
       shape, bands from results/v1/<obj>/controls.json, resizes if the png isnt the cubes size (recorded).
       round trip test to 1e-3 (found that save_png floored while the decoder rounds, fixed). 41 tests
-- [ ] A9 freeze: fresh clone make all from zero (time it, README), results/v1 -> results/frozen,
+- [ ] A9 freeze: fresh clone make all from zero (time it), results/v1 -> results/frozen,
       git tag v1.0-results, paper/numbers.md with the json path next to every number
 
 ## track B (openvdb -> houdini + karma), in order. starts after A3, needs A8 before B5. cinecube/houdini/
 
 decided nov 5: houdini + karma, not blender (arash runs it, the viz lab has it, karma does volumes
-better). blender stays the fallback in the risks table. everything for arash is in
-cinecube/houdini/README.md: setup, commands, the gate scene node by node, what to send back.
+better). blender stays the fallback in the risks table.
+
+how to run it (houdini 20, hython is in the houdini bin folder):
+    make test && make disk && make vdb                                    # python side, writes results/houdini/vdb/
+    hython cinecube/houdini/npz_to_vdb.py results/houdini/vdb/*.npz       # -> .vdb, check them in a File sop
+    hython cinecube/houdini/scene.py cinecube/houdini/specs/plain_l1448.json      # plain scene -> exr (+ .hip)
+    python -m cinecube.houdini.gate --render results/houdini/renders/l1448_plain.exr --cube l1448
+    # after the gate passes, any knob: copy a spec, change 1 field, render, then
+    python -m cinecube.houdini.exr_to_png --exr <frame>.exr --science results/houdini/renders/l1448_plain.exr
+    python -m cinecube.sweep --png <frame>.png --cube l1448 --cmap gray --scale 6.258 --label "houdini <knob>"
+    # --scale = display_scale_K_kms in results/houdini/vdb/<cube>.json
+geometry: voxel x y z = ra px, dec px, channel. sky = x y plane, velocity = z, gate camera looks down -z,
+1 render px = 1 voxel. scene.py + npz_to_vdb.py have not been run in a real houdini yet, first run is the test.
 
 - [x] B1 export (nov 5, python side): cinecube/houdini/export_vdb.py, make vdb -> npz + json + target
       per object + disk_truth. vdb written directly if the openvdb bindings exist, otherwise
       npz_to_vdb.py in hython does it with houdinis own tools (no bindings needed). first track B
       number: clipping negative noise costs 2% of the peak on l1448, 28% on the disk and ngc2403.
       added "clip" as a python operator so the atlas shows it. ARASH: run npz_to_vdb.py, check the
-      shapes in the viewport (README section 1) -> B1 done
+      shapes in the viewport -> B1 done
 - [ ] B1 houdini side (arash): hython npz_to_vdb.py on the 5 npz, File sop, shapes right, name = density
 - [ ] B2 scene.py (hython scene.py spec.json): file sop -> vdb, xform for the stretch, pyro shader
       emission = density + absorb 0 scatter 0, ortho cam down -z 1 px per voxel, no lights, karma rop

@@ -2,7 +2,10 @@
  "cube": "j1615",
  "vdb": "results/houdini/vdb/j1615.vdb",
  "out": "results/houdini/renders/j1615_plain",
- "resolution": [256, 256],
+ "resolution": [
+  256,
+  256
+ ],
  "theta_deg": 0,
  "stretch": 1,
  "samples": 64,
@@ -13,6 +16,5 @@
  "scatter": 0,
  "anisotropy": 0,
  "light": null,
- "dof": null,
- "note": "the gate scene. everything off. change samples and volume_step until the gate stops moving"
+ "dof": null
 }

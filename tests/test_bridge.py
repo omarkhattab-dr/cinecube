@@ -1,4 +1,3 @@
-"""the bridge: a sweep frame saved to png and scored through frame_from_png gives the same numbers"""
 import json
 import os
 import numpy as np
@@ -24,7 +23,7 @@ def test_png_round_trip_matches_in_memory(tmp_path, op, params, cmap):
     mem = score_frame(m0, ref01, rec, mask, fr["rgb"], zero_color_lab(fr["cmap"]))["headline"]
     png = str(tmp_path / "frame.png")
     save_png(fr["rgb"], png)
-    assert np.allclose(load_png(png), np.round(np.clip(fr["rgb"], 0, 1) * 255) / 255, atol=1e-9)   # the flip undoes itself
+    assert np.allclose(load_png(png), np.round(np.clip(fr["rgb"], 0, 1) * 255) / 255, atol=1e-9)
     row = frame_from_png(png, "l1448", cmap=cmap, scale=fr["scale"], params=params, label="rt_" + op,
                          sweep_yaml=os.path.join(ROOT, "sweeps", "v1.yaml"), out_root=str(tmp_path / "out"), bands_from=os.path.join(ROOT, "results", "v1"))
     for k in ("data_recovered", "structure_kept", "flux_visible"):
@@ -40,7 +39,7 @@ def test_resize_when_sizes_differ(tmp_path):
     fr = apply_operator(cube, "reference")
     png = str(tmp_path / "big.png")
     save_png(fr["rgb"], png)
-    Image.open(png).resize((210, 210), Image.BILINEAR).save(png)       # pretend blender rendered at 2x
+    Image.open(png).resize((210, 210), Image.BILINEAR).save(png)
     row = frame_from_png(png, "l1448", cmap="gray", label="big", sweep_yaml=os.path.join(ROOT, "sweeps", "v1.yaml"),
                          out_root=str(tmp_path / "out"), bands_from=os.path.join(ROOT, "results", "v1"))
     assert row["resized_from"] == [210, 210]

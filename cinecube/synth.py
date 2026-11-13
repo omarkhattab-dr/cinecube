@@ -1,17 +1,3 @@
-"""
-synth.py - fake keplerian disk where i know the 3d truth
-
-on a real cube nobody knows the true depth. here i do. the disk lives on a 3d sky grid
-(x, y, z with z along the line of sight), every voxel has a density and a line of sight
-velocity, and the ppv cube is sum over z of density * gaussian line at that velocity.
-the truth (density + velocity on the grid) gets saved next to the cube for the index.
-
-    python -m cinecube.synth --out data/synthetic_disk --inc 45
-
-writes data/synthetic_disk.fits (spectral-cube can read it) + data/synthetic_disk_truth.npz.
-moment0 = column density along z by construction, so the equivalence test holds here too
-(tests/test_synth.py)
-"""
 import argparse
 import json
 
@@ -22,15 +8,6 @@ from scipy import ndimage
 def keplerian_disk(nx=128, ny=128, nz=96, nv=64, dv=None, r_in=8.0, r_out=48.0, inc_deg=45.0, pa_deg=25.0,
                    h0=2.5, flare=0.3, v0=1.6, sigma_v=0.12, v_sys=0.0, peak_K=4.0, beam_fwhm_px=2.5,
                    noise_K=0.24, seed=0):
-    """build the cube + truth. lengths in pixels, velocities km/s, brightness K
-
-    density   surface density (r/r_in)^-1 between r_in and r_out with soft edges, gaussian in
-              height, scale height h0 * (r/r_in)^flare
-    velocity  keplerian, v_phi = v0 sqrt(r_in/r), line of sight = v_phi cos(phi) sin(i) + v_sys
-    geometry  disk frame -> tilt by inclination about x -> rotate by PA about z (line of sight)
-    dv=None picks a channel width so the band covers +-(v0 sin i) plus 4 line widths. pass dv to force
-    inside r_in rotation is held at v0 (inner hole, not a singularity)
-    """
     rng = np.random.default_rng(seed)
     i = np.deg2rad(inc_deg)
     if dv is None:
@@ -40,8 +17,7 @@ def keplerian_disk(nx=128, ny=128, nz=96, nv=64, dv=None, r_in=8.0, r_out=48.0, 
     y = np.arange(ny) - ny / 2 + 0.5
     z = np.arange(nz) - nz / 2 + 0.5
     v = v_sys + (np.arange(nv) - nv / 2 + 0.5) * dv
-    X, Y = np.meshgrid(x, y)  # [y, x]
-    # undo the position angle in the sky plane
+    X, Y = np.meshgrid(x, y)
     xs = X * np.cos(pa) + Y * np.sin(pa)
     ys = -X * np.sin(pa) + Y * np.cos(pa)
 
@@ -49,7 +25,6 @@ def keplerian_disk(nx=128, ny=128, nz=96, nv=64, dv=None, r_in=8.0, r_out=48.0, 
     rho_grid = np.zeros((nz, ny, nx))
     vlos_grid = np.zeros((nz, ny, nx))
     for k, zk in enumerate(z):
-        # undo the inclination about x: sky (xs, ys, z) -> disk (xd, yd, zd)
         xd = xs
         yd = ys * np.cos(i) + zk * np.sin(i)
         zd = -ys * np.sin(i) + zk * np.cos(i)
@@ -64,10 +39,9 @@ def keplerian_disk(nx=128, ny=128, nz=96, nv=64, dv=None, r_in=8.0, r_out=48.0, 
         rho_grid[k] = rho
         vlos_grid[k] = vlos
         line = np.exp(-0.5 * ((v[:, None, None] - vlos[None]) / sigma_v) ** 2) / (np.sqrt(2 * np.pi) * sigma_v)
-        T += rho[None] * line * 1.0  # dz = 1 pixel
-    # units: brightest channel peaks at peak_K, then beam, then noise
+        T += rho[None] * line * 1.0
     T *= peak_K / T.max()
-    rho_grid *= peak_K / (rho_grid.sum(axis=0).max() + 1e-12)  # column density in the same units as moment0
+    rho_grid *= peak_K / (rho_grid.sum(axis=0).max() + 1e-12)
     if beam_fwhm_px > 0:
         s = beam_fwhm_px / 2.3548
         T = np.stack([ndimage.gaussian_filter(ch, s) for ch in T])
@@ -82,7 +56,6 @@ def keplerian_disk(nx=128, ny=128, nz=96, nv=64, dv=None, r_in=8.0, r_out=48.0, 
 
 
 def write_fits(T, v, path, dv, pixel_arcsec=1.0):
-    """write a cube spectral-cube can read, RA/Dec TAN axes + VRAD axis in km/s"""
     from astropy.io import fits
     nv, ny, nx = T.shape
     h = fits.Header()
@@ -91,7 +64,7 @@ def write_fits(T, v, path, dv, pixel_arcsec=1.0):
     h["CTYPE2"], h["CUNIT2"], h["CRPIX2"], h["CRVAL2"], h["CDELT2"] = "DEC--TAN", "deg", ny / 2 + 0.5, -5.0, pixel_arcsec / 3600
     h["CTYPE3"], h["CUNIT3"], h["CRPIX3"], h["CRVAL3"], h["CDELT3"] = "VRAD", "km/s", 1.0, float(v[0]), float(dv)
     h["SPECSYS"] = "LSRK"
-    h["RESTFRQ"] = 110201353000.0  # 13CO 1-0 so spectral-cube can convert units
+    h["RESTFRQ"] = 110201353000.0
     h["OBJECT"] = "synthetic Keplerian disk (cinecube.synth)"
     fits.PrimaryHDU(T.astype(np.float32), header=h).writeto(path, overwrite=True)
 

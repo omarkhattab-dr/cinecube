@@ -1,6 +1,3 @@
-"""the whole project sits on this one: plain render == moment0 map.
-if someone touches render.py and this fails, no more zero point.
-runs on every real cube in data/ (l1448 + the alma disk), the fake disk has its own test"""
 import glob
 import os
 import numpy as np

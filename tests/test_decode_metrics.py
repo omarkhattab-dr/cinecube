@@ -1,4 +1,3 @@
-"""decoder gets the reference back, scores do the right thing at both ends, spec numbers hold"""
 import os
 import numpy as np
 import pytest
@@ -22,12 +21,11 @@ def setup():
 
 
 def test_bins_follow_arc_length():
-    # longer ramp = more readable levels. numbers from docs/metrics.md
     n = {cm: len(ramp_bins(cm)[0]) for cm in ("gray", "viridis", "inferno", "jet")}
     assert n["gray"] < n["viridis"] < n["inferno"] < n["jet"]
     assert 20 <= n["gray"] <= 32
     c01, _, _ = ramp_bins("gray")
-    assert np.all(np.diff(c01) > 0)       # centers walk up the ramp
+    assert np.all(np.diff(c01) > 0)
 
 
 @pytest.mark.parametrize("cmap", ["gray", "inferno", "viridis"])
@@ -58,7 +56,6 @@ def test_shuffled_scores_near_zero(setup):
 
 
 def test_flux_visible_sees_a_jnd():
-    # a flat 2% gray is under 1 JND from black (invisible), 10% is well over
     zero = zero_color_lab("gray")
     assert not visible_mask(np.full((4, 4, 3), 0.02), zero).any()
     assert visible_mask(np.full((4, 4, 3), 0.10), zero).all()
@@ -82,7 +79,6 @@ def test_every_operator_runs_and_decodes(setup):
 
 
 def test_controls_order(setup):
-    # ceiling >= beam blur >= shuffled, bands come out of them
     cube, m0, ref, mask = setup
     c = controls(m0, ref, mask, beam_fwhm_px=2.0)
     assert c["ceiling"]["data_recovered"] >= c["beam_blur"]["data_recovered"] > c["shuffled"]["data_recovered"]

@@ -1,22 +1,3 @@
-"""
-exr_to_png.py - the display step for a houdini render, done here so its the same as track A
-
-karma writes scene linear exr. the viewer sees an 8 bit png. the bridge needs to know exactly how
-one became the other, so the conversion is this script, not houdinis view transform:
-    display = clip(exr / scale, 0, 1)      scale = the 99.8 pct of the SCIENCE pass (plain render of the
-                                           same object), so the plain render maps to the same display as
-                                           track As reference
-    png = colormap(display)                gray by default, any matplotlib cmap
-
-    python -m cinecube.houdini.exr_to_png --exr renders/l1448_absorb_0p5.exr --science renders/l1448_plain.exr --cmap gray
-    -> renders/l1448_absorb_0p5.png + .json (scale, cmap, science pass) ready for the bridge:
-    python -m cinecube.sweep --png renders/l1448_absorb_0p5.png --cube l1448 --cmap gray --scale <display_scale_K_kms from the vdb json>
-
-why the science pass and not the frame itself: a frame that absorbs or vignettes has a lower 99.8 pct,
-normalizing it to itself would hide the loss. same rule as track A (norm_disp on the reference).
-for the "view transform" knob (B4) karma can also write the png through OCIO, then this script is
-skipped and the json says so. the row is flipped so y is up, like save_png in sweep.py.
-"""
 import argparse
 import json
 import os
@@ -31,7 +12,7 @@ from ..operators import colormap
 def exr_to_png(exr, science, cmap="gray", out=None, flip_rows=True):
     img = read_render(exr)
     sci = read_render(science) if science and science != exr else img
-    if flip_rows:                                      # exr row 0 is the top, our maps have row 0 at the bottom
+    if flip_rows:
         img, sci = img[::-1], sci[::-1]
     scale = float(np.percentile(sci, 99.8)) + 1e-12
     disp = np.clip(img / scale, 0, 1)

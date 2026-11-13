@@ -1,23 +1,3 @@
-"""
-envelope.py - how far can you push each knob before it leaves the band
-
-the bands from metrics v1 become a budget: "stay conditional" (or "stay preserving"). for every
-operator with a numeric parameter, per object, the envelope is the biggest grid value that is still
-inside the band. the first crossing counts: if the curve dips out and comes back in later, the
-envelope stops at the dip (conservative, the artist doesnt get to skip over a bad setting).
-
-    python -m cinecube.envelope results/v1          # -> results/v1/envelope.json + envelope.md
-
-3 outcomes per operator per object:
-    value   the biggest grid value still inside the band, scores at that value stored next to it
-    none    even the smallest grid value is outside -> always distorting at the tested range
-    top     every grid value is inside -> never costs anything here, widen the grid once (flagged)
-
-operators with a categorical param (colormap) get the list of categories that stay inside instead.
-operators with no param (log, asinh, mip) just get their band.
-operators with 2 params (orbit theta x aspect, sky_resample factor x method, bloom gain + fixed others)
-get one envelope per setting of the other param, the varying one is the one with the most values.
-"""
 import argparse
 import glob
 import json
@@ -31,7 +11,6 @@ def _is_num(v):
 
 
 def groups_for(rows):
-    """rows of 1 operator -> list of (varying_param, fixed_params_dict, rows sorted by the varying param)"""
     params = [k for k in rows[0]["params"]]
     numeric = [k for k in params if _is_num(rows[0]["params"][k])]
     if not numeric:
@@ -48,7 +27,6 @@ def groups_for(rows):
 
 
 def crossing(series, var, threshold, key="data_recovered"):
-    """first crossing along the grid. -> (status, value, row)"""
     inside = [r[key] >= threshold - 1e-9 for r in series]
     if not inside[0]:
         return "none", None, None
@@ -79,7 +57,6 @@ def envelope_for_card(card):
                     entry[band_key] = dict(status=st, value=val,
                                            scores=None if row is None else dict(data_recovered=round(row["data_recovered"], 4), structure_kept=round(row["structure_kept"], 4), flux_visible=round(row["flux_visible"], 4)),
                                            label=None if row is None else row["label"])
-                # is the curve monotone along the grid (so first crossing = last crossing)
                 d = entry["data_recovered"]
                 entry["monotone"] = all(d[i] >= d[i + 1] - 1e-6 for i in range(len(d) - 1))
                 out.append(entry)

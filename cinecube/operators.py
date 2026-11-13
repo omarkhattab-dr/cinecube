@@ -1,15 +1,3 @@
-"""
-operators.py - every cinematic choice as a plain function + the registry the sweep reads
-
-2 kinds:
-    volume  changes how the cube gets rendered (tf, compositing, camera, dof, shading, resampling).
-            apply_operator() just renders with the right kwargs
-    image   changes the frame after render (colormap, grade, bloom, vignette, grain).
-            apply_operator() renders the reference, colormaps it, then applies the function
-
-each registry entry has its family (the 8 from the deck), params with defaults, the failure
-class i expect (kindlmann + scheidegger 2014) and a label. the sweep expands grids over these.
-"""
 import numpy as np
 from scipy import ndimage
 import matplotlib
@@ -19,7 +7,6 @@ matplotlib.use("Agg")
 from .render import render, norm_disp, disp_scale, center_crop_like
 
 
-# ------------------------------------------------------------------ transfer functions
 def tf_linear(E, cube):
     return E
 
@@ -36,15 +23,11 @@ def tf_threshold(E, cube, k=3.0):
     return np.where(E > k * cube.sigma, E, 0.0)
 
 
-# ------------------------------------------------------------------ image-space functions
 def colormap(img01, name="gray"):
-    """0..1 image through a matplotlib colormap -> float rgb 0..1"""
     return matplotlib.colormaps[name](img01)[..., :3]
 
 
 def grade_teal_orange(rgb, strength=0.6):
-    """split tone, shadows -> teal, highlights -> orange, plus an s curve on luminance.
-    pointwise on color so the informed decoder can undo it by pushing the ramp through it"""
     lum = rgb.mean(axis=-1, keepdims=True)
     s = 1.0 / (1.0 + np.exp(-8 * (lum - 0.5)))
     s = (s - s.min()) / (s.max() - s.min() + 1e-12)
@@ -55,7 +38,6 @@ def grade_teal_orange(rgb, strength=0.6):
 
 
 def grade_nonmonotone(rgb, mix=0.7):
-    """a bad grade on purpose, curve folds over so 2 data values get the same color"""
     lum = rgb.mean(axis=-1, keepdims=True)
     folded = 1 - np.abs(2 * lum - 1)
     return np.clip(rgb * (1 - mix) + mix * folded, 0, 1)
@@ -81,13 +63,11 @@ def grain(rgb, sigma=0.03, seed=1):
 
 
 def spectral_bin(T, factor=2):
-    """average every `factor` channels together"""
     nv = (T.shape[0] // factor) * factor
     return T[:nv].reshape(nv // factor, factor, *T.shape[1:]).mean(axis=1)
 
 
 def sky_resample(img, factor=2, method="nearest"):
-    """downsample the sky by `factor` then back up, nearest or bilinear"""
     small = ndimage.zoom(img, 1.0 / factor, order=1)
     order = 0 if method == "nearest" else 1
     back = ndimage.zoom(small, factor, order=order)
@@ -97,8 +77,6 @@ def sky_resample(img, factor=2, method="nearest"):
     return out
 
 
-# ------------------------------------------------------------------ the registry
-# kind volume|image, params name -> default, cls = failure class i expect
 OPERATORS = {
     "reference": dict(family="reference", kind="volume", params={}, cls="none", label="Reference (= moment 0)"),
     "clip": dict(family="transfer", kind="volume", params={}, cls="deleter", label="Clip at 0 (no negative emission)"),
@@ -128,7 +106,6 @@ def label_for(name, params):
 
 
 def _render_kwargs(name, p, cube):
-    """operator name + params -> render() kwargs"""
     if name == "reference":
         return {}
     if name == "log":
@@ -138,7 +115,6 @@ def _render_kwargs(name, p, cube):
     if name == "threshold":
         return {"tf": lambda e: tf_threshold(e, cube, p["k"])}
     if name == "absorb":
-        # tau = optical depth of the brightest voxel, kappa turns it into per (K km/s)
         return {"composite": "absorb", "kappa": p["tau"] / (np.max(cube.T) * cube.dv)}
     if name == "mip":
         return {"composite": "mip"}
@@ -154,18 +130,6 @@ def _render_kwargs(name, p, cube):
 
 
 def apply_operator(cube, name, params=None, cmap="gray"):
-    """render one operator and hand back everything the scorer needs
-
-    dict with:
-        img        rendered 2d image in physical units, cropped to the sky field
-        img_full   uncropped (same as img unless the camera orbited)
-        img01      display normalized 0..1
-        scale      the 99.8 percentile that maps img01 back to physical units
-        rgb        the frame a viewer sees, float rgb 0..1
-        cmap       base colormap (what the blind decoder knows)
-        ramp_transform  pointwise color transform after the colormap, or None
-        kind, family, cls, label
-    """
     spec = OPERATORS[name]
     p = dict(spec["params"])
     p.update(params or {})
@@ -175,8 +139,6 @@ def apply_operator(cube, name, params=None, cmap="gray"):
 
     if spec["kind"] == "volume":
         if name == "clip":
-            # what every production renderer does first: negative noise cant emit light. the first
-            # cost of taking a cube into houdini at all, see houdini/export_vdb.py clip_cost_of_peak
             img_full = render(np.clip(cube.T, 0, None), cube.dv)
         elif name == "spectral_bin":
             Tb = spectral_bin(cube.T, int(p["factor"]))
@@ -190,7 +152,6 @@ def apply_operator(cube, name, params=None, cmap="gray"):
         out["rgb"] = colormap(out["img01"], cmap)
         return out
 
-    # image ops work on the reference frame
     if name == "colormap":
         cmap = p["cmap"]
         out["cmap"] = cmap

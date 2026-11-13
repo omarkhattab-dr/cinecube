@@ -1,20 +1,17 @@
-# sweep v1 - every operator at default + a grid per family. grids widened once on nov 5 (A5) after
-# the first envelope pass: orbit fine near 0, dof/bloom/vignette/grade/bin/resample go further out
-# run: make sweep  (or python -m cinecube.sweep sweeps/v1.yaml)
 cubes:
   l1448: data/l1448_13co.fits
   disk: data/synthetic_disk.fits
-  j1615: data/exoalma_j1615_12co.fits    # exoALMA 12CO 3-2 disk, beam from the header (6 px)
-  ngc2403: data/things_ngc2403_hi.fits   # THINGS HI galaxy, beam from the header (2.2 px)
+  j1615: data/exoalma_j1615_12co.fits
+  ngc2403: data/things_ngc2403_hi.fits
 out: results/v1
-decoder: {mode: blind, recipe: jnd, jnd: 2.9}     # bujack 2026 bins, see docs/metrics.md
-vis_jnd: 2.3          # flux visible = 1 JND from the legends zero color
+decoder: {mode: blind, recipe: jnd, jnd: 2.9}
+vis_jnd: 2.3
 mask_k: 3.0
-controls: {beam_fwhm_px: 2.0}   # l1448: 46 arcsec beam / 23 arcsec px
-beams: {l1448: 2.0, disk: 2.5}   # no BMAJ in those 2 headers. j1615 + ngc2403 have one so theyre not here
+controls: {beam_fwhm_px: 2.0}
+beams: {l1448: 2.0, disk: 2.5}
 noise_edge_channels: 3
 operators:
-  - name: clip        # negative noise cant emit, what every production renderer does first
+  - name: clip
   - name: log
   - name: asinh
   - name: threshold
@@ -29,7 +26,7 @@ operators:
   - name: grade_nonmonotone
     grid: {mix: [0.25, 0.5, 0.75, 1.0]}
   - name: orbit
-    grid: {theta: [0, 2, 4, 6, 8, 10, 15, 20, 30, 45, 60, 90], aspect: [1, 2, 3]}   # fine near 0, thats where the envelope is
+    grid: {theta: [0, 2, 4, 6, 8, 10, 15, 20, 30, 45, 60, 90], aspect: [1, 2, 3]}
   - name: dof
     grid: {sigma: [0.5, 1, 2, 3, 4, 6, 8]}
   - name: shading

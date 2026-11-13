@@ -1,18 +1,3 @@
-"""
-prep.py - turn a big archive cube into the small working cube that goes in data/
-
-alma cubes come as 1 GB, 1024x1024x300, Jy/beam, FREQ axis. the sweep wants <= 256x256x128 in K
-with a km/s axis. this does the crop once and writes down everything it did (json next to the fits
-+ HISTORY in the header) so the paper can say where the pixels came from.
-
-    python -m cinecube.prep --in J1615_12CO_fiducial.image.fits --out data/exoalma_j1615_12co.fits \
-        --size 256 --nchan 128 --down 2 --doi 10.7910/DVN/CFHWNH --file-id 11120493 \
-        --cite "exoALMA I (Teague et al 2025), exoALMA II (Loomis et al 2025)"
-
-order of things: spectral axis -> km/s (radio, RESTFRQ), find the line channels, crop around the
-image center (casa puts the star there), Jy/beam -> K with the beam, block average down x down
-pixels, write float32. Jy/beam is per beam so averaging pixels after the K conversion is fine.
-"""
 import argparse
 import json
 import os
@@ -21,7 +6,6 @@ import numpy as np
 
 
 def line_channels(sc, nchan, box=128):
-    """which channels have the line: spectrum summed over the central box, keep nchan around its middle"""
     nv, ny, nx = sc.shape
     y0, x0 = ny // 2, nx // 2
     sub = sc[:, y0 - box // 2:y0 + box // 2, x0 - box // 2:x0 + box // 2]
@@ -35,7 +19,6 @@ def line_channels(sc, nchan, box=128):
 
 
 def block_mean(a, f):
-    """average f x f pixel blocks, nan aware. [v, y, x] -> [v, y/f, x/f]"""
     nv, ny, nx = a.shape
     ny2, nx2 = ny // f, nx // f
     a = a[:, :ny2 * f, :nx2 * f].reshape(nv, ny2, f, nx2, f)
@@ -48,7 +31,7 @@ def prep(path, out, size=256, nchan=128, down=2, center=None, doi=None, file_id=
     import astropy.units as u
 
     sc = SpectralCube.read(path)
-    if hasattr(sc, "stokes_data"):          # 4d aips cube -> first stokes
+    if hasattr(sc, "stokes_data"):
         sc = sc.stokes_data[list(sc.components)[0]] if hasattr(sc, "components") else sc
     ctype3_in = str(sc.header.get("CTYPE3"))
     rest = sc.header.get("RESTFRQ") or sc.header.get("RESTFREQ")
@@ -65,7 +48,7 @@ def prep(path, out, size=256, nchan=128, down=2, center=None, doi=None, file_id=
     y0, y1 = max(0, cy - half), min(ny, cy + half)
     x0, x1 = max(0, cx - half), min(nx, cx + half)
     sub = sc[lo:hi, y0:y1, x0:x1]
-    sub.allow_huge_operations = True      # 1536x1536x61 is "huge" for spectral-cube, its fine
+    sub.allow_huge_operations = True
     unit_in = str(sub.unit)
     if "Jy" in unit_in:
         sub = sub.to(u.K)
@@ -76,7 +59,6 @@ def prep(path, out, size=256, nchan=128, down=2, center=None, doi=None, file_id=
     v = sub.spectral_axis.to(u.km / u.s).value
     dv = float(np.median(np.diff(v)))
 
-    # beam: median of the table if there is one, else header
     try:
         bmaj = float(np.median([b.major.to("deg").value for b in sub.beams]))
         bmin = float(np.median([b.minor.to("deg").value for b in sub.beams]))
@@ -84,7 +66,6 @@ def prep(path, out, size=256, nchan=128, down=2, center=None, doi=None, file_id=
     except Exception:
         bmaj, bmin, bpa = sc.header.get("BMAJ"), sc.header.get("BMIN"), sc.header.get("BPA")
     if not bmaj and beam_arcsec:
-        # no beam anywhere in the file (things), take the one from the survey paper
         bmaj = bmin = beam_arcsec / 3600.0
         bpa = 0.0
 
@@ -94,7 +75,6 @@ def prep(path, out, size=256, nchan=128, down=2, center=None, doi=None, file_id=
     h["CTYPE1"], h["CTYPE2"] = h0["CTYPE1"], h0["CTYPE2"]
     h["CUNIT1"], h["CUNIT2"] = "deg", "deg"
     h["CDELT1"], h["CDELT2"] = h0["CDELT1"] * down, h0["CDELT2"] * down
-    # the new pixel (0.5, 0.5) centre of the first block -> old pixel index x0 + (down-1)/2
     h["CRPIX1"] = (h0["CRPIX1"] - 1 - x0 - (down - 1) / 2) / down + 1
     h["CRPIX2"] = (h0["CRPIX2"] - 1 - y0 - (down - 1) / 2) / down + 1
     h["CRVAL1"], h["CRVAL2"] = h0["CRVAL1"], h0["CRVAL2"]

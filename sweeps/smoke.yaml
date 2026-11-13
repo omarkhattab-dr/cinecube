@@ -1,12 +1,11 @@
-# smoke sweep - 1 frame per operator on the 3 real cubes, ~1 min. --cube <key> for just one
 cubes:
   l1448: data/l1448_13co.fits
   j1615: data/exoalma_j1615_12co.fits
   ngc2403: data/things_ngc2403_hi.fits
 out: results/smoke
-decoder: {mode: blind, recipe: jnd, jnd: 2.9}     # bujack 2026 bins, see docs/metrics.md
-vis_jnd: 2.3          # flux visible = 1 JND from the legends zero color
-controls: {beam_fwhm_px: 2.0}   # l1448: 46 arcsec beam / 23 arcsec px
+decoder: {mode: blind, recipe: jnd, jnd: 2.9}
+vis_jnd: 2.3
+controls: {beam_fwhm_px: 2.0}
 operators:
   - {name: clip}
   - {name: log}

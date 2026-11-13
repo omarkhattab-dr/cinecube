@@ -1,11 +1,4 @@
 #!/bin/bash
-# setup_mac.sh - first time setup on my mac: venv, tests, git, github
-#
-#   cd /Users/omarkhattab/Documents/VIZA701/cinecube
-#   bash setup_mac.sh
-#
-# steps 1-3 always run. step 4 (github) only if gh is installed and logged in
-# (brew install gh; gh auth login). ARASH=<his github username> adds him as collaborator
 set -e
 cd "$(dirname "$0")"
 
@@ -47,4 +40,4 @@ else
   echo "     git remote add origin git@github.com:<you>/cinecube.git && git push -u origin main)"
 fi
 
-echo "== done. next: make smoke, make all, overleaf (see README)"
+echo "== done. next: make smoke, make all, make all"
