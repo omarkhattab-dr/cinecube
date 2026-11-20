@@ -1,6 +1,6 @@
 PY ?= python3
 
-.PHONY: test smoke disk sweep index envelope figures all clean vdb
+.PHONY: test smoke disk sweep index envelope figures all clean vdb td-specs td-score td-twins
 
 test:
 	$(PY) -m pytest -q tests
@@ -26,6 +26,16 @@ index: disk
 vdb:
 	$(PY) -m cinecube.houdini.export_vdb
 	@echo "next, in houdini: hython cinecube/houdini/npz_to_vdb.py results/houdini/vdb/*.npz"
+
+td-specs: vdb
+	$(PY) -m cinecube.td.sweep_td specs sweeps/td_v1.yaml
+	@echo "next, in touchdesigner python: CINECUBE_REPO = '$(CURDIR)'; exec(open(CINECUBE_REPO + '/cinecube/td/td_scene.py').read()); build(); run_specs()"
+
+td-score:
+	$(PY) -m cinecube.td.sweep_td score sweeps/td_v1.yaml
+
+td-twins:
+	$(PY) -m cinecube.td.sweep_td twins sweeps/td_v1.yaml
 
 envelope:
 	$(PY) -m cinecube.envelope results/v1

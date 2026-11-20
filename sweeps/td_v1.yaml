@@ -1,0 +1,23 @@
+# touchdesigner sweep (track b, td renderer). same cubes, reader, decoder and bands as v1.yaml.
+# volume ops render in cinecube/td/raymarch.glsl (trilinear by default; at theta 0, step 1 it samples voxel centers,
+# so the plain frame is still exactly the clipped moment0), post ops are td tops on the plain display image.
+# names that exist in track a (log, absorb, orbit, dof, bloom, ...) are twins and get compared in fig_twins.
+base: sweeps/v1.yaml
+out: results/td
+operators:
+  - {name: log, kind: volume, knobs: {tf: 1}}
+  - {name: asinh, kind: volume, knobs: {tf: 2}}
+  - {name: threshold, kind: volume, knobs: {tf: 3}, grid: {k: [1, 2, 3, 5]}}
+  - {name: absorb, kind: volume, grid: {tau: [0.1, 0.25, 0.35, 0.5, 1.0, 1.5, 2.0]}}
+  - {name: mip, kind: volume, knobs: {mip: 1}}
+  - {name: orbit, kind: volume, grid: {theta: [0, 2, 4, 6, 8, 10, 15, 20, 30, 45, 60, 90], aspect: [1, 2, 3]}}
+  - {name: dof, kind: volume, grid: {sigma: [0.5, 1, 2, 3, 4, 6, 8]}}
+  - {name: light, kind: volume, twin: shading, grid: {strength: [0.2, 0.35, 0.6, 0.7]}}
+  - {name: step, kind: volume, grid: {step: [0.5, 2, 4]}}
+  - {name: nearest, kind: volume, knobs: {interp: 0}, grid: {step: [0.5, 1, 2]}}
+  - {name: colormap, kind: post, grid: {cmap: [inferno, viridis, gray, jet]}}
+  - {name: grade_teal_orange, kind: post, grid: {strength: [0.2, 0.4, 0.6, 0.8, 1.0]}}
+  - {name: bloom, kind: post, grid: {gain: [0.5, 1.0, 1.6, 2.5, 4.0]}}
+  - {name: exposure, kind: post, grid: {gamma: [0.5, 0.7, 1.4, 2.0]}}
+  - {name: vignette, kind: post, grid: {strength: [0.25, 0.5, 0.75, 1.0]}}
+  - {name: grain, kind: post, grid: {sigma: [0.01, 0.03, 0.06, 0.1]}}
