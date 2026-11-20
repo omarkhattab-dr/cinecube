@@ -62,7 +62,17 @@ exoALMA 12CO 3-2 disk (J1615, in repo), THINGS HI galaxy (NGC 2403, in repo) (2n
 - [ ] A9 freeze: fresh clone make all from zero (time it), results/v1 -> results/frozen,
       git tag v1.0-results, paper/numbers.md with the json path next to every number
 
-## track B (openvdb -> houdini + karma), in order. starts after A3, needs A8 before B5. cinecube/houdini/
+## track B moved to touchdesigner (nov 20), see docs/td.md
+
+houdini apprentice watermarks every karma render (gate cant pass), no licensed seat here. td instead:
+- [x] TB1 renderer: cinecube/td/raymarch.glsl + td_scene.py, cube as a float32 3d texture, frames read back as float
+- [x] TB2 gate: 0.000% of peak on all 4 cubes, scale 1, no flip (results/td/gate_*.json). zero point = clip row
+- [x] TB3 sweep: sweeps/td_v1.yaml, 94 frames x 4 cubes, 16 knobs (10 twins of track a + light, step, nearest,
+      exposure), td renders all 376 in ~2 s, make td-specs / td-score / td-twins
+- [x] TB4 twins: fig_twins_<cube>.png, results/td/twins.json, rank agreement 0.87-0.98
+- [ ] TB5 fidelity pass + heroes (1280 px cap), disclosure shot along the A7 safe path, freeze into results/frozen/td
+
+## track B (openvdb -> houdini + karma), in order. (paused: apprentice watermark) starts after A3, needs A8 before B5. cinecube/houdini/
 
 decided nov 5: houdini + karma, not blender (arash runs it, the viz lab has it, karma does volumes
 better). blender stays the fallback in the risks table.
